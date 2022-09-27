@@ -1,0 +1,9 @@
+{
+    "author" : ["Mr. 42"],
+    "install_msg" : "Thank you for choosing Mr. 42!\nFeel free to open an issue on my repo at https://github.com/Mister-42/mr42-cogs if you notice a bug or want to request a feature.",
+    "name" : "Mr42",
+    "short" : "How many paths must a man walk down?",
+    "description" : "The answer to life, the universe, and everything",
+    "min_python_version": [3, 7, 2],
+	"tags": []
+}

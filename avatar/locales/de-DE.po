@@ -1,0 +1,52 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: 2022-10-07 21:19+0200\n"
+"PO-Revision-Date: 2022-10-07 22:47+0200\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: redgettext 3.4.2\n"
+"Language: de_DE\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: avatar.py:13
+#, docstring
+msgid "Get user's avatar."
+msgstr "Avatar eines Benutzers abrufen."
+
+#: avatar.py:17
+#, docstring
+msgid ""
+"Returns a user's avatar as attachment.\n"
+"\n"
+"        User argument can be user mention, nickname, username, user ID.\n"
+"\n"
+"        Defaults to requester when no argument is supplied.\n"
+"        "
+msgstr ""
+"Gibt den Avatar eines Benutzers als Anhang zurück.\n"
+"\n"
+"        Benutzerargument kann Benutzerkennung, Spitzname, Benutzername,"
+" Benutzer-ID sein.\n"
+"\n"
+"        Standardmäßig wird der Anforderer verwendet, wenn kein Argument"
+" angegeben wird.\n"
+"        "
+
+#: avatar/avatar.py:40
+msgid "Here is your avatar, {name}."
+msgstr "Hier ist Ihr Avatar, {name}."
+
+#: avatar.py:42
+msgid "This is _my_ avatar, {name}!"
+msgstr "Das ist _mein_ Avatar, {name}!"
+
+#: avatar.py:44
+msgid "You requested the avatar of {name}."
+msgstr "Sie haben den Avatar von {name} angefordert."
+
+#: avatar.py:46
+msgid "{author} requested the avatar of {name}."
+msgstr "{author} hat den Avatar von {name} angefordert."
