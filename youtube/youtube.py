@@ -387,7 +387,7 @@ class youtube(commands.Cog):
         return res
 
     @checks.is_owner()
-    @youtube.command(aliases=['mig'], hidden=True)
+    @youtube.command(hidden=True)
     async def migrate(self, ctx: commands.Context):
         TubeConfig = Config.get_conf(None, 0x547562756c6172, True, cog_name='Tube')
         TubeConfig.register_guild(subscriptions=[])
@@ -417,19 +417,19 @@ class youtube(commands.Cog):
                         guild = self.bot.get_guild(g.id)
                         count = 0
                         for data in await TubeConfig.guild(guild).subscriptions():
-                            # yid = data.get('id')
-                            # channel = self.bot.get_channel(int(data.get('channel').get('id')))
-                            #
-                            # if data.get('publish'):
-                            #     await self.sub(ctx, yid, channel, True)
-                            # else:
-                            #     await self.sub(ctx, yid, channel)
-                            #
-                            # if data.get('custom'):
-                            #     await self.subscription_discord_options(ctx, 'message', yid, data.get('custom'), channel)
-                            #
-                            # if data.get('mention'):
-                            #     await self.subscription_discord_options(ctx, 'mention', yid, data.get('mention'), channel)
+                            yid = data.get('id')
+                            channel = self.bot.get_channel(int(data.get('channel').get('id')))
+
+                            if data.get('publish'):
+                                await self.sub(ctx, yid, channel, True)
+                            else:
+                                await self.sub(ctx, yid, channel)
+
+                            if data.get('custom'):
+                                await self.subscription_discord_options(ctx, 'message', yid, data.get('custom'), channel)
+
+                            if data.get('mention'):
+                                await self.subscription_discord_options(ctx, 'mention', yid, data.get('mention'), channel)
                             count += 1
                         await ctx.send(f"Imported {count} {'subscription' if count == 1 else 'subscriptions'} for {g.name}")
                 if 'Tube' in ctx.bot.extensions:
