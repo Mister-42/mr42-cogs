@@ -1,0 +1,16 @@
+{
+    "author" : ["Mr. 42"],
+    "install_msg" : "You've just installed the YouTube cog!",
+    "name" : "youtube",
+    "short" : "Subscribe to channels on YouTube",
+    "description" : "Posts in a channel every time a new video is published to a YouTube channel.",
+    "required_cogs": {},
+    "requirements": [
+        "feedparser",
+        "pytube"
+    ],
+    "min_bot_version": "3.4.0",
+    "max_bot_version": "0.0.0",
+    "tags": ["YouTube"],
+    "type": "COG"
+}

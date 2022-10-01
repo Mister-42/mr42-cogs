@@ -1,0 +1,9 @@
+{
+    "author" : ["Mr. 42"],
+    "install_msg" : "Thank you for choosing Mr. 42.",
+    "name" : "Mr42",
+    "short" : "How many paths must a man walk down?",
+    "description" : "The answer to life, the universe, and everything",
+    "min_python_version": [3, 7, 2],
+	"tags": []
+}
