@@ -1,6 +1,6 @@
 {
     "author" : ["Mr. 42"],
-    "install_msg" : "You've just installed the YouTube cog!",
+    "install_msg" : "You've just installed the YouTube cog!\nDo `[p]youtube help` to get the list of commands for this cog, and their description.",
     "name" : "youtube",
     "short" : "Subscribe to channels on YouTube",
     "description" : "Posts in a channel every time a new video is published to a YouTube channel.",
@@ -12,5 +12,6 @@
     "min_bot_version": "3.4.0",
     "max_bot_version": "0.0.0",
     "tags": ["YouTube"],
-    "type": "COG"
+    "type": "COG",
+    "end_user_data_statement": "This cog does not store data or metadata about users."
 }

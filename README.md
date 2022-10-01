@@ -24,7 +24,7 @@ Posts in a channel every time a new video is added to a YouTube channel.
 
 Biggest advantages over `Tube`:
 - Fetch any YouTube feed only once per interval, independent of how many Discord channels are subscribed to it
-- Add YouTube channels with almost any URL. No more fiddling around trying to get the Channel ID
+- Add YouTube channels or edit its settings with almost any URL. No more fiddling around to get the Channel ID
 
 ### Guild Commands
 
