@@ -353,7 +353,8 @@ class YouTube(commands.Cog):
                         message = await channel.send(content=description, allowed_mentions=mentions)
                         if data.get('discord').get(dchan).get('publish'):
                             if channel.is_news():
-                                await message.publish()
+                                with contextlib.suppress(discord.HTTPException):
+                                    await message.publish()
                             else:
                                 log.warning(f"Can't publish, this is not a news channel: {dchan}")
                 if message:
