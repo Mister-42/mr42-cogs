@@ -447,16 +447,6 @@ class YouTube(commands.Cog):
         else:
             await ctx.send("Migration has been cancelled.")
 
-    @checks.admin_or_permissions(manage_guild=True)
-    @commands.guild_only()
-    @youtube.command(aliases=['t', 'foo', 'bar'], hidden=True)
-    async def test(self, ctx: commands.Context, channelYouTube):
-        yid = await self.get_youtube_channel(ctx, channelYouTube)
-        if not yid:
-            await ctx.send(f"**{channelYouTube}** is not a valid channel id.")
-            return
-        await ctx.send(yid)
-
     async def get_youtube_channel(self, ctx: commands.Context, channelYouTube):
         match = re.compile("^UC[-_A-Za-z0-9]{21}[AQgw]$").fullmatch(channelYouTube)
         if match:
