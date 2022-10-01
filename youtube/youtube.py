@@ -145,9 +145,9 @@ class YouTube(commands.Cog):
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
-    @youtube.command(aliases=['c'])
+    @youtube.command(aliases=['c', 'customize'])
     async def custom(self, ctx: commands.Context, channelYouTube, message: str = False, channelDiscord: Optional[discord.TextChannel] = None):
-        """ Add a custom message to videos from a YouTube channel
+        """ Add a custom message for new videos from a YouTube channel
 
         You can use any keys available in the RSS object in your custom message
         by surrounding the key in perecent signs, e.g.:
@@ -159,13 +159,15 @@ class YouTube(commands.Cog):
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
-    @youtube.command(aliases=['m'])
+    @youtube.command(aliases=['m', 'rolemention'])
     async def mention(self, ctx: commands.Context, channelYouTube, mention: Optional[discord.Role], channelDiscord: Optional[discord.TextChannel] = None):
-        """ Adds a role @mention in front of the message
+        """ Add a role @mention in front of the message
 
         Works for `@everyone` or any role. `@here` is not supported.
+
+        You can also remove the mention by not specifying any role.
         """
-        m = None
+        m = False
         if mention:
             m = mention.id
         await self.subscription_discord_options(ctx, 'mention', channelYouTube, m, channelDiscord)
@@ -271,17 +273,6 @@ class YouTube(commands.Cog):
         await self.conf.guild(ctx.guild).autodelete.set(autodelete)
         await ctx.send(f'Automatic deletion of your commands has now been {"enabled" if autodelete else "disabled" }!')
 
-    @checks.is_owner()
-    @youtube.command(name="setinterval", hidden=True)
-    async def set_interval(self, ctx: commands.Context, interval: int):
-        """Set the interval in seconds at which to check for updates
-
-        Very low values will probably get you rate limited
-
-        Default is 300 seconds (5 minutes)"""
-        self.background_get_new_videos.change_interval(seconds=interval)
-        await ctx.send(f"Interval set to {await self.conf.interval()}")
-
     @tasks.loop(seconds=1)
     async def background_get_new_videos(self):
         try:
@@ -302,7 +293,7 @@ class YouTube(commands.Cog):
                 data.update({'updated': max(data.get('updated'), int(time.mktime(entry["published_parsed"])))})
 
                 message = None
-                if int(time.mktime(entry["updated_parsed"])) > updated and entry['yt_videoid'] not in sub.get(yid).get('processed'):
+                if time.mktime(entry["updated_parsed"]) > updated and entry['yt_videoid'] not in sub.get(yid).get('processed'):
                     for dchan in data.get('discord').keys():
                         channel = self.bot.get_channel(int(dchan))
                         if not channel:
@@ -388,8 +379,20 @@ class YouTube(commands.Cog):
         return res
 
     @checks.is_owner()
+    @youtube.command(name="setinterval", hidden=True)
+    async def set_interval(self, ctx: commands.Context, interval: int):
+        """Set the interval in seconds at which to check for updates
+
+        Very low values will probably get you rate limited
+
+        Default is 300 seconds (5 minutes)"""
+        self.background_get_new_videos.change_interval(seconds=interval)
+        await ctx.send(f"Interval set to {await self.conf.interval()}")
+
+    @checks.is_owner()
     @youtube.command(hidden=True)
     async def migrate(self, ctx: commands.Context):
+        """Import all subscriptions from the `Tube` cog"""
         TubeConfig = Config.get_conf(None, 0x547562756c6172, True, cog_name='Tube')
         TubeConfig.register_guild(subscriptions=[])
         channels = 0
