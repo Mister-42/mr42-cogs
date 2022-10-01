@@ -19,7 +19,7 @@ from redbot.core.utils.predicates import MessagePredicate
 
 log = logging.getLogger("red.mr42-cogs.youtube")
 
-class youtube(commands.Cog):
+class YouTube(commands.Cog):
     """A YouTube subscription cog"""
     def __init__(self, bot: bot.Red):
         self.bot = bot
