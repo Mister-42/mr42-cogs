@@ -78,7 +78,7 @@ class YouTube(commands.Cog):
                 return
 
             processed = []
-            for entry in feed['entries'][:6][::-1]:
+            for entry in feed['entries'][:6]:
                 processed.append(entry['yt_videoid'])
 
             try:
