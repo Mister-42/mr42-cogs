@@ -224,26 +224,31 @@ class YouTube(commands.Cog):
     async def list(self, ctx: commands.Context):
         """List current subscriptions"""
         guildSubs = []
+        subsByChannel = {}
         for sub in await self.conf.subs():
             channelYouTube, sub = sub.popitem()
             for channel in ctx.guild.channels:
+                subsByChannel[channel.id] = []
                 dchan = str(channel.id)
-                if str(channel.id) in sub.get('discord').keys():
-                    guildSubs.append({'name': sub.get('name'), 'id': channelYouTube, 'updated': sub.get('updated'), 'discord': channel, 'publish': sub.get('discord').get(dchan).get('publish')})
+                if dchan in sub.get('discord').keys():
+                    d = {'message': '\u1d9c', 'mention': '\u1d50', 'publish': '\u1d56'}
+                    tags = ''
+                    for k, v in d.items():
+                        if sub.get('discord').get(dchan).get(k, False):
+                            tags += v
+                    guildSubs.append({'name': sub.get('name'), 'id': channelYouTube, 'updated': sub.get('updated'), 'discord': channel, 'tags': tags})
 
         if not len(guildSubs):
             await ctx.send("No subscriptions yet - try adding some!")
             return
 
-        subsByChannel = {}
-        for sub in sorted(guildSubs, key=lambda d: d['updated']):
-            channel = sub["discord"].id
-            subsByChannel[channel] = [
-                # Subscription entry must be max 100 chars: 1 + 24 + 1 + 19 + 1 + 1 + 53
-                f"`{sub['id']} {datetime.fromtimestamp(sub.get('updated'))}` {escape(sub.get('name')[:53], formatting=True)}",
-                # Preserve previous entries
-                *subsByChannel.get(channel, [])
-            ]
+        for sub in sorted(guildSubs, key=lambda d: d['updated'], reverse=True):
+            channel = sub['discord'].id
+            line = f"`{sub['id']} {datetime.fromtimestamp(sub.get('updated'))}` {escape(sub.get('name')[:50])}"
+            if sub['tags']:
+                line += f" {sub['tags']}"
+            subsByChannel[channel].append(line)
+        subsByChannel = self.remove_empty_elements(subsByChannel)
 
         subs_string = ""
         subsByChannelSorted = dict(sorted(subsByChannel.items()))
@@ -362,6 +367,7 @@ class YouTube(commands.Cog):
         self.background_get_new_videos.change_interval(seconds=interval)
 
     async def fetch(self, session, url):
+        """Fetch data from a URL"""
         try:
             async with session.get(url) as response:
                 return await response.read()
