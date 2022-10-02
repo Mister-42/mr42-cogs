@@ -40,7 +40,7 @@ class YouTube(commands.Cog):
     async def sub(self, ctx: commands.Context, channelYouTube, channelDiscord: Optional[discord.TextChannel] = None):
         """Subscribe a Discord channel to a YouTube channel
 
-        If no discord channel is specified, the current channel will be subscribed
+        If no discord channel is specified, the current channel will be subscribed.
 
         Channels can be added by channel ID, channel URL, video URL, or playlist URL.
         """
@@ -50,11 +50,11 @@ class YouTube(commands.Cog):
 
         subs = await self.conf.subs()
         channel = channelDiscord or ctx.channel
-        newChannel = False
+        feedTitle = False
 
         for sub in subs:
             if yid in sub.keys():
-                # YouTube channel already exists in config.
+                # YouTube channel already exists in config
                 if str(channel.id) in sub.get(yid).get('discord').keys():
                     # Already subsribed, do nothing!
                     await ctx.send("This subscription already exists!")
@@ -66,13 +66,13 @@ class YouTube(commands.Cog):
                 feedTitle = sub.get(yid).get('name')
                 break
 
-        if not newChannel:
-            # YouTube channel does not exist in config.
-            feed = feedparser.parse(await self.get_feed(yid))
+        # YouTube channel does not exist in config
+        if not feedTitle:
             try:
+                feed = feedparser.parse(await self.get_feed(yid))
                 feedTitle = feed['feed']['title']
-            except KeyError:
-                await ctx.send("Error getting channel feed title. Make sure the ID is correct.")
+            except:
+                await ctx.send("Error getting channel feed. Make sure the input is correct.")
                 return
 
             processed = []
@@ -115,7 +115,7 @@ class YouTube(commands.Cog):
         subs = await self.conf.subs()
         for sub in subs:
             if yid in sub.keys():
-                # YouTube channel exists in config.
+                # YouTube channel exists in config
                 feedTitle = sub.get(yid).get('name')
                 if not channelDiscord:
                     for channel in ctx.guild.channels:
@@ -393,11 +393,16 @@ class YouTube(commands.Cog):
 
         for sub in subs:
             yid, data = next(iter(sub.items()))
-            feed = feedparser.parse(await self.get_feed(yid))
             updated = data.get('updated')
 
-            # Always update the latest YouTube channel name
-            sub.get(yid).update({'name': feed['feed']['title']})
+            # Always update the YouTube channel name
+            try:
+                feed = feedparser.parse(await self.get_feed(yid))
+                sub.get(yid).update({'name': feed['feed']['title']})
+            except:
+                # Skip current run
+                log.warning(f"Unable to retrieve {yid}, skipped")
+                continue
 
             for entry in feed['entries'][:4][::-1]:
                 processed = sub.get(yid).get('processed')
@@ -412,7 +417,7 @@ class YouTube(commands.Cog):
                             data.get('discord').pop(chan)
                             if not data.get('discord'):
                                 sub.clear()
-                            log.warning(f"Removed invalid channel in subscription {yid}: {dchan}")
+                            log.warning(f"Invalid channel {channelDiscord.name} ({dchan}) for subscription {yid} removed")
                             continue
 
                         for g in self.bot.guilds:
