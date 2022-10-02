@@ -31,17 +31,19 @@ Biggest advantages over `Tube`:
 | Command   | Description                                           | Alias(es) |
 | --------- | ----------------------------------------------------- | --------- |
 | `youtube` | Call this cog                                         | `yt` |
-| `list`    | List current subscriptions                            ||
 | `sub`     | Subscribe a Discord channel to a YouTube channel      | `s`, `subscribe` |
 | `unsub`   | Unsubscribe a Discord channel from a YouTube channel  | `u`, `unsubscribe` |
+| `list`    | List current subscriptions                            ||
 | `custom`  | Add or remove a custom message for new videos         | `c`, `customize` |
 | `mention` | Add or remove a role @mention in front of the message | `m`, `rolemention` |
+| `info`    | Provides information about a YouTube subscription     ||
 
 ### Bot Owner Commands
 
 | Command       | Description |
 | ------------- | ----------- |
 | `setinterval` | Set the interval in seconds at which to check for updates |
+| `autodelete`  | Toggles auto deleting the commands given to the plugin |
 | `migrate`     | Import all subscriptions from the `Tube` cog |
 
 ### Credits

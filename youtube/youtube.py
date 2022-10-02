@@ -244,7 +244,7 @@ class YouTube(commands.Cog):
 
         for sub in sorted(guildSubs, key=lambda d: d['updated'], reverse=True):
             channel = sub['discord'].id
-            line = f"`{sub['id']} {datetime.fromtimestamp(sub.get('updated'))}` {escape(sub.get('name')[:50])}"
+            line = f"`{sub['id']} {datetime.fromtimestamp(sub.get('updated'))}` {escape(sub.get('name')[:50], formatting=True)}"
             if sub['tags']:
                 line += f" {sub['tags']}"
             subsByChannel[channel].append(line)
@@ -261,6 +261,52 @@ class YouTube(commands.Cog):
 
         for page in pagify(subs_string):
             await ctx.send(page)
+
+    @checks.admin_or_permissions(manage_guild=True)
+    @commands.guild_only()
+    @youtube.command()
+    async def info(self, ctx: commands.Context, channelYouTube):
+        """Provides information about a YouTube subscription"""
+        yid = await self.get_youtube_channel(ctx, channelYouTube)
+        if not yid:
+            return
+
+        for sub in await self.conf.subs():
+            if yid in sub.keys():
+                embed = discord.Embed()
+                embed.title = f"Subscription information for {sub.get(yid).get('name')}"
+                embed.url = f"https://www.youtube.com/channel/{yid}/"
+                embed.set_footer(text=f"Latest video: {datetime.fromtimestamp(sub.get(yid).get('updated'))}")
+
+                for channel in ctx.guild.channels:
+                    dchan = str(channel.id)
+                    if dchan in sub.get(yid).get('discord').keys():
+                        info = []
+                        message = sub.get(yid).get('discord').get(dchan).get('message', False)
+                        if message:
+                            info.append(f'Custom: "{escape(message, formatting=True)}"')
+
+                        mention = sub.get(yid).get('discord').get(dchan).get('mention', False)
+                        if mention:
+                            if mention == ctx.guild.id:
+                                mention = ctx.guild.default_role
+                            else:
+                                mention = f"<@&{mention}>"
+                            info.append(f"Mention: {mention}")
+
+                        if sub.get(yid).get('discord').get(dchan).get('publish'):
+                            msg = "Yes"
+                            if not channel.is_news():
+                                msg += ", but not an Announcement Channel"
+                            info.append(f'Publish: {msg}')
+
+                        info = "\n".join(info)
+                        if not info:
+                            info = "\u200b"
+                        embed.add_field(name=f"Posted to #{channel.name}", value=info, inline=False)
+                await ctx.send(embed=embed)
+                return
+        await ctx.send("Subscription not found.")
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
@@ -457,30 +503,41 @@ class YouTube(commands.Cog):
             await ctx.send("Migration has been cancelled.")
 
     async def get_youtube_channel(self, ctx: commands.Context, channelYouTube):
+        url = channelYouTube
         match = re.compile("^UC[-_A-Za-z0-9]{21}[AQgw]$").fullmatch(channelYouTube)
         if match:
-            channelYouTube = f"https://www.youtube.com/channel/{match.string}"
+            subs = await self.conf.subs()
+            for sub in subs:
+                for channel in sub:
+                    if channelYouTube == channel:
+                        return channelYouTube
+            url = f"https://www.youtube.com/channel/{match.string}"
 
         # URL is a channel?
         try:
-            return Channel(channelYouTube).channel_id
+            cid = Channel(url)
+            if cid:
+                return cid.channel_id
         except:
             pass
 
         # URL is a video?
         try:
-            return YouTube(channelYouTube).channel_id
+            cid = YouTube(url)
+            if cid:
+                return cid.channel_id
         except:
             pass
 
         # URL is a playlist?
         try:
-            return Playlist(channelYouTube).owner_id
+            cid = Playlist(url)
+            if cid:
+                return cid.owner_id
         except:
             pass
 
-        await ctx.send(f"Channel id **{channelYouTube}** is invalid.")
-        return
+        await ctx.send(f"Your input **{channelYouTube}** is not valid.")
 
     def remove_empty_elements(self, d):
         """recursively remove empty lists, empty dicts, or None elements from a dictionary"""
