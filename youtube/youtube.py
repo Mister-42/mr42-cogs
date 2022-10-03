@@ -320,6 +320,7 @@ class YouTube(commands.Cog):
         Very low values will probably get you rate limited
 
         Default is 300 seconds (5 minutes)"""
+        await self.conf.interval.set(interval)
         self.background_get_new_videos.change_interval(seconds=interval)
         await ctx.send(f"Interval set to {await self.conf.interval()}")
 
@@ -384,7 +385,7 @@ class YouTube(commands.Cog):
         else:
             await ctx.send("Migration has been cancelled.")
 
-    @tasks.loop(seconds=1)
+    @tasks.loop(minutes=1)
     async def background_get_new_videos(self):
         try:
             subs = await self.conf.subs()
