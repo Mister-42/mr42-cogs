@@ -42,10 +42,10 @@ Biggest advantages over `Tube`:
 
 ### Bot Owner Commands
 
-| Command       | Description |
-| ------------- | ----------- |
-| `setinterval` | Set the interval in seconds at which to check for updates |
-| `migrate`     | Import all subscriptions from the `Tube` cog |
+| Command    | Description |
+| ---------- | ----------- |
+| `interval` | Set the interval in seconds at which to check for updates |
+| `migrate`  | Import all subscriptions from the `Tube` cog |
 
 ### Credits
 

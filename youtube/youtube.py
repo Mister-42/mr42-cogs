@@ -14,7 +14,7 @@ from pytube import Channel, Playlist, YouTube
 from typing import Optional
 from discord.ext import tasks
 from redbot.core import Config, bot, checks, commands
-from redbot.core.utils.chat_formatting import escape, humanize_list, pagify
+from redbot.core.utils.chat_formatting import escape, humanize_list, humanize_timedelta, pagify
 from redbot.core.utils.predicates import MessagePredicate
 
 log = logging.getLogger("red.mr42-cogs.youtube")
@@ -313,16 +313,22 @@ class YouTube(commands.Cog):
         await ctx.send(f'Automatic deletion of your commands has now been {"enabled" if autodelete else "disabled" }!')
 
     @checks.is_owner()
-    @youtube.command(name="setinterval", hidden=True)
-    async def set_interval(self, ctx: commands.Context, interval: int):
+    @youtube.command(hidden=True)
+    async def interval(self, ctx: commands.Context, interval: Optional[int]):
         """Set the interval in seconds at which to check for updates
 
-        Very low values will probably get you rate limited
+        Very low values will probably get you rate limited!
 
         Default is 300 seconds (5 minutes)"""
+        if interval is None:
+            interval = await self.conf.interval()
+            await ctx.send(f"I am currently checking every {humanize_timedelta(seconds=interval)} for new videos.")
+            return
         await self.conf.interval.set(interval)
+        self.background_get_new_videos.stop()
         self.background_get_new_videos.change_interval(seconds=interval)
-        await ctx.send(f"Interval set to {await self.conf.interval()}")
+        self.background_get_new_videos.start()
+        await ctx.send(f"I will now check every {humanize_timedelta(seconds=interval)} for new videos.")
 
     @checks.is_owner()
     @youtube.command(hidden=True)
