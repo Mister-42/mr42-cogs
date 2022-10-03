@@ -144,13 +144,19 @@ class YouTube(commands.Cog):
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
     @youtube.command()
-    async def list(self, ctx: commands.Context):
+    async def list(self, ctx: commands.Context, channelDiscord: Optional[discord.TextChannel] = None):
         """List current subscriptions"""
         guildSubs = []
         subsByChannel = {}
+
+        if channelDiscord:
+            channels = [channelDiscord]
+        else:
+            channels = ctx.guild.channels
+
         for sub in await self.conf.subs():
             channelYouTube, sub = sub.popitem()
-            for channel in ctx.guild.channels:
+            for channel in channels:
                 subsByChannel[channel.id] = []
                 dchan = str(channel.id)
                 if dchan in sub.get('discord').keys():
