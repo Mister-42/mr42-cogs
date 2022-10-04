@@ -1,0 +1,14 @@
+{
+    "author" : ["Mr. 42"],
+    "install_msg" : "You've just installed the Avatar cog!\nType `[p]avatar help` to get a description for this cog.",
+    "name" : "avatar",
+    "short" : "Get user's avatar",
+    "description" : "Returns a user's avatar as attachment.",
+    "required_cogs": {},
+    "requirements": [],
+    "min_bot_version": "3.4.0",
+    "max_bot_version": "0.0.0",
+    "tags": ["avatar", "pfp"],
+    "type": "COG",
+    "end_user_data_statement": "This cog does not store data or metadata about users."
+}

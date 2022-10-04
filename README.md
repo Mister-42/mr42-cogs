@@ -18,6 +18,17 @@ You can install individual cogs like this:
 
 Just replace `[cog]` with the name of the cog you want to install.
 
+## avatar
+
+Returns a user's avatar as attachment.
+
+### Command
+
+| Prefix   | Option                                                 |
+| -------- | ------------------------------------------------------ |
+| `avatar` | User: can be user mention, nickname, username, user ID |
+
+
 ## youtube
 
 Posts in a channel every time a new video is added to a YouTube channel.

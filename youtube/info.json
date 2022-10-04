@@ -1,6 +1,6 @@
 {
     "author" : ["Mr. 42"],
-    "install_msg" : "You've just installed the YouTube cog!\nDo `[p]youtube help` to get the list of commands for this cog, and their description.",
+    "install_msg" : "You've just installed the YouTube cog!\nType `[p]youtube help` to get the list of commands for this cog, and their description.",
     "name" : "youtube",
     "short" : "Subscribe to channels on YouTube",
     "description" : "Posts in a channel every time a new video is published to a YouTube channel.",
