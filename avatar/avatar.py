@@ -24,13 +24,16 @@ class Avatar(BaseCog):
             user = ctx.author
 
         pfp = BytesIO()
-        await user.avatar_url.save(pfp)
-        pfp.seek(0)
 
-        if user.is_avatar_animated():
-            filename = f"pfp-{user.id}.gif"
+        filename = f"pfp-{user.id}.png"
+        if discord.version_info.major == 2:
+            await user.display_avatar.save(pfp)
+            if user.avatar.is_animated():
+                filename = f"pfp-{user.id}.gif"
         else:
-            filename = f"pfp-{user.id}.png"
+            await user.avatar_url.save(pfp)
+            if user.is_avatar_animated():
+                filename = f"pfp-{user.id}.gif"
 
         reqName = f"**<@{ctx.author.id}>**"
         if isinstance(ctx.channel, discord.DMChannel):
@@ -40,4 +43,5 @@ class Avatar(BaseCog):
         if user == ctx.author:
             message = f"Here is your avatar, <@{user.id}>."
 
+        pfp.seek(0)
         await ctx.send(message, file=discord.File(pfp, filename=filename))
