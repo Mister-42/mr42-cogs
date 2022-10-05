@@ -49,7 +49,7 @@ class YouTube(commands.Cog):
             return
 
         subs = await self.conf.subs()
-        channel = channelDiscord or ctx.channel
+        channel = channelDiscord if channelDiscord else ctx.channel
         feedTitle = False
 
         for sub in subs:
@@ -149,11 +149,7 @@ class YouTube(commands.Cog):
         guildSubs = []
         subsByChannel = {}
 
-        if channelDiscord:
-            channels = [channelDiscord]
-        else:
-            channels = ctx.guild.channels
-
+        channels = [channelDiscord] if channelDiscord else ctx.guild.channels
         for sub in await self.conf.subs():
             channelYouTube, sub = sub.popitem()
             for channel in channels:
@@ -215,15 +211,13 @@ class YouTube(commands.Cog):
 
         You can also remove the mention by not specifying any role.
         """
-        m = False
-        if mention:
-            m = mention.id
+        m = mention.id if mention else False
         await self.subscription_discord_options(ctx, 'mention', channelYouTube, m, channelDiscord)
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
     @youtube.command(aliases=['p'])
-    async def publish(self, ctx: commands.Context, channelYouTube, channelDiscord: discord.TextChannel):
+    async def publish(self, ctx: commands.Context, channelYouTube, channelDiscord: Optional[discord.TextChannel] = None):
         """ Toggles publishing new messages to a Discord channel
 
         This feature is only available on Community Servers.
@@ -232,29 +226,34 @@ class YouTube(commands.Cog):
             await ctx.send('This function is only available on Community Servers.')
             return
 
-        if not channelDiscord.is_news():
-            await ctx.send(f'The channel <#{channelDiscord}> is not an Announcement Channel.')
-            return
-
         yid = await self.get_youtube_channel(ctx, channelYouTube)
         if not yid:
             return
 
-        subs = await self.conf.subs()
-        for sub in subs:
+        dchan = False
+        notNews = []
+        channels = [channelDiscord] if channelDiscord else ctx.guild.channels
+        for sub in await self.conf.subs():
             if yid in sub.keys():
-                channel = sub.get(yid).get('discord').get(str(channelDiscord.id))
+                dchannels = sub.get(yid).get('discord')
+                for channel in channels:
+                    if str(channel.id) in dchannels.keys():
+                        if not channel.is_news():
+                            notNews.append(f"<#{channel.id}>")
+                            # await ctx.send(f'The channel <#{channel.id}> is not an Announcement Channel.')
+                            continue
+                        dchan = str(channel.id)
+                        publish = not dchannels.get(dchan).get('publish')
+                        await self.subscription_discord_options(ctx, 'publish', yid, publish, channel)
                 break
 
-        if not channel:
+        if notNews:
+            if len(notNews) == 1:
+                await ctx.send(f'The channel {humanize_list(notNews)} is not an Announcement Channel.')
+            else:
+                await ctx.send(f'The channels {humanize_list(notNews)} are not Announcement Channels.')
+        elif not dchan:
             await ctx.send("Subscription not found.")
-            return
-
-        publish = False
-        if not channel.get('publish'):
-            publish = True
-
-        await self.subscription_discord_options(ctx, 'publish', yid, publish, channelDiscord)
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
@@ -282,10 +281,7 @@ class YouTube(commands.Cog):
 
                         mention = sub.get(yid).get('discord').get(dchan).get('mention', False)
                         if mention:
-                            if mention == ctx.guild.id:
-                                mention = ctx.guild.default_role
-                            else:
-                                mention = f"<@&{mention}>"
+                            mention = ctx.guild.default_role if mention == ctx.guild.id else f"<@&{mention}>"
                             info.append(f"Mention: {mention}")
 
                         if sub.get(yid).get('discord').get(dchan).get('publish'):
@@ -294,9 +290,7 @@ class YouTube(commands.Cog):
                                 msg += ", but not an Announcement Channel"
                             info.append(f'Publish: {msg}')
 
-                        info = "\n".join(info)
-                        if not info:
-                            info = "\u200b"
+                        info = "\n".join(info) if info else "\u200b"
                         embed.add_field(name=f"Posted to #{channel.name}", value=info, inline=False)
                 await ctx.send(embed=embed)
                 return
@@ -307,9 +301,8 @@ class YouTube(commands.Cog):
     @youtube.command(hidden=True)
     async def autodelete(self, ctx: commands.Context):
         """Toggles auto deleting the commands given to the plugin"""
-        autodelete = False
-        if not await self.conf.guild(ctx.guild).autodelete():
-            autodelete = True
+        autodelete = not await self.conf.guild(ctx.guild).autodelete()
+        if autodelete:
             if ctx.channel.permissions_for(ctx.guild.me).manage_messages:
                 await ctx.message.delete()
             else:
@@ -453,11 +446,7 @@ class YouTube(commands.Cog):
                             description = f"{custom} {link}"
                         # Default descriptions
                         else:
-                            if channel.permissions_for(guild.me).embed_links:
-                                # Let the embed provide necessary info
-                                description = link
-                            else:
-                                description = (f"New video from *{entry['author']}*\n**{entry['title']}**\n{link}")
+                            description = link if channel.permissions_for(guild.me).embed_links else f"New video from *{entry['author']}*\n**{entry['title']}**\n{link}"
 
                         mention = data.get('discord').get(dchan).get('mention', False)
                         if mention:
@@ -490,25 +479,19 @@ class YouTube(commands.Cog):
         interval = await self.conf.interval()
         self.background_get_new_videos.change_interval(seconds=interval)
 
-    async def fetch(self, session, url):
-        """Fetch data from a URL"""
-        try:
-            async with session.get(url) as response:
-                return await response.read()
-        except aiohttp.client_exceptions.ClientConnectionError as e:
-            log.exception(f"Fetch failed for url {url}: ", exc_info=e)
-            return None
-
     async def get_feed(self, channel):
         """Fetch data from a feed"""
+        url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel}"
         async with aiohttp.ClientSession() as session:
-            res = await self.fetch(
-                session,
-                f"https://www.youtube.com/feeds/videos.xml?channel_id={channel}"
-            )
-        return res
+            try:
+                async with session.get(url) as response:
+                    return await response.read()
+            except aiohttp.client_exceptions.ClientConnectionError as e:
+                log.exception(f"Fetch failed for url {url}: ", exc_info=e)
+                return None
 
     async def get_youtube_channel(self, ctx: commands.Context, channelYouTube):
+        """Best effort to obtain YouTube Channel ID"""
         url = channelYouTube
         match = re.compile("^UC[-_A-Za-z0-9]{21}[AQgw]$").fullmatch(channelYouTube)
         if match:
@@ -546,6 +529,7 @@ class YouTube(commands.Cog):
         await ctx.send(f"Your input **{channelYouTube}** is not valid.")
 
     async def subscription_discord_options(self, ctx: commands.Context, action, channelYouTube, data: Optional, channelDiscord: Optional[discord.TextChannel] = None):
+        """Store custom options for Discord channels"""
         yid = await self.get_youtube_channel(ctx, channelYouTube)
         if not yid:
             return
