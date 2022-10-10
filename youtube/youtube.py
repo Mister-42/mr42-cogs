@@ -14,7 +14,7 @@ from redbot.core import Config, bot, checks, commands
 from redbot.core.bot import Red
 from redbot.core.data_manager import bundled_data_path
 from redbot.core.i18n import Translator, cog_i18n, get_regional_format
-from redbot.core.utils.chat_formatting import bold, escape, humanize_list, humanize_timedelta, pagify
+from redbot.core.utils.chat_formatting import bold, error, escape, humanize_list, humanize_timedelta, inline, pagify, text_to_file, warning, success
 from redbot.core.utils.predicates import MessagePredicate
 
 _ = Translator("YouTube", __file__)
@@ -59,7 +59,7 @@ class YouTube(commands.Cog):
                 # YouTube channel already exists in config
                 if str(channel.id) in sub.get(yid).get('discord').keys():
                     # Already subsribed, do nothing!
-                    return await ctx.send(_("This subscription already exists!"))
+                    return await ctx.send(warning(_("This subscription already exists!")))
 
                 # Adding Discord channel to existing YouTube subscription
                 newChannel = {channel.id: {'publish': False}}
@@ -71,7 +71,7 @@ class YouTube(commands.Cog):
                     feed = feedparser.parse(await self.get_feed(yid))
                     feedTitle = feed['feed']['title']
                 except:
-                    return await ctx.send(_("Error getting channel feed. Make sure the input is correct."))
+                    return await ctx.send(error(_("Error getting channel feed. Make sure the input is correct.")))
 
                 processed = [entry['yt_videoid'] for entry in feed['entries'][:6]]
                 try:
@@ -128,7 +128,7 @@ class YouTube(commands.Cog):
                 await self.config.subs.set(subs)
                 await ctx.send(_("Unsubscribed from {title} on {list}.").format(title=bold(feedTitle), list=humanize_list(updated)))
             else:
-                await ctx.send(_("Subscription not found."))
+                await ctx.send(error(_("Subscription not found.")))
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
@@ -137,46 +137,83 @@ class YouTube(commands.Cog):
         """List current subscriptions."""
         guildSubs = []
         subsByChannel = {}
+        subCount = 0
+        subCountYt = 0
 
-        channels = [channelDiscord] if channelDiscord else ctx.guild.channels
         for sub in await self.config.subs():
             channelYouTube, sub = sub.popitem()
+
+            channels = [channelDiscord] if channelDiscord else ctx.guild.channels
+            if ctx.command.qualified_name == 'youtube listall':
+                channels = []
+                for channel in sub.get('discord').keys():
+                    channels.append(self.bot.get_channel(int(channel)))
+
+            guildSub = False
             for channel in channels:
                 subsByChannel[channel.id] = []
                 dchan = str(channel.id)
                 if dchan in sub.get('discord').keys():
+                    guildSub = True
+                    subCount += 1
                     d = {'message': '\u1d9c', 'mention': '\u1d50', 'publish': '\u1d56'}
                     tags = ''.join(v for k, v in d.items() if sub.get('discord').get(dchan).get(k, False))
                     guildSubs.append({'name': sub.get('name'), 'id': channelYouTube, 'updated': sub.get('updated'), 'discord': channel, 'tags': tags})
+            if guildSub:
+                subCountYt += 1
 
         if not len(guildSubs):
-            return await ctx.send(_("No subscriptions yet - try adding some!"))
+            return await ctx.send(warning(_("No subscriptions yet - try adding some!")))
 
         for sub in sorted(guildSubs, key=lambda d: d['updated'], reverse=True):
             channel = sub['discord'].id
-            line = f"`{sub['id']} {datetime.fromtimestamp(sub.get('updated'))}` {escape(sub.get('name')[:50], formatting=True)}"
+            p1 = f"{sub['id']} {datetime.fromtimestamp(sub.get('updated'))}"
+            p2 = escape(sub.get('name')[:50], formatting=True)
             if sub['tags']:
-                line += f" {sub['tags']}"
-            subsByChannel[channel].append(line)
+                p2 += f" {sub['tags']}"
+            if subCount > 50:
+                subsByChannel[channel].append(f"{p1} {p2}")
+            else:
+                subsByChannel[channel].append(f"{inline(p1)} {p2}")
         subsByChannel = {k:v for k,v in subsByChannel.items() if v != []}
 
-        subs_string = ""
+        text = ""
+        richText = ""
         subsByChannelSorted = dict(sorted(subsByChannel.items()))
+        if len(subsByChannel) > 1:
+            text = _("{count} total subscriptions").format(count=subCount)
+            if subCount != subCountYt:
+                text = _("{count} total subscriptions over {yt} YouTube channels").format(count=subCount, yt=subCountYt)
+            richText = bold(text)
+
         for sub, sub_ids in subsByChannelSorted.items():
             count = len(sub_ids)
             channel = self.bot.get_channel(sub)
 
-            if count > 1:
-                subs_title = _("{count} YouTube subscriptions for {channel}").format(count=count, channel=f"<#{channel.id}>")
+            guild = ""
+            if ctx.command.qualified_name == 'youtube listall':
+                guild = f" ({channel.guild})"
+            if subCount > 1:
+                subt = _("{count} YouTube subscriptions for {channel}")
+                title = subt.format(count=count, channel=f"#{channel.name}")
+                richTitle = subt.format(count=count, channel=f"<#{channel.id}>")
             else:
-                subs_title = _("1 YouTube subscription for {channel}").format(channel=f"<#{channel.id}>")
-            subs_string += "\n\n" + bold(subs_title)
+                subt = _("1 YouTube subscription for {channel}")
+                title = subt.format(channel=f"#{channel.name}")
+                richTitle = subt.format(channel=f"<#{channel.id}>")
+            text += "\n\n" + title + guild
+            richText += "\n\n" + bold(richTitle + guild)
 
-            for sub in sub_ids:
-                subs_string += f"\n{sub}"
+            for s in sub_ids:
+                text += f"\n{s}"
+                richText += f"\n{s}"
 
-        for page in pagify(subs_string):
-            await ctx.send(page)
+        if subCount > 50:
+            page = text_to_file(text, "subscriptions.txt")
+            await ctx.send(file=page)
+        else:
+            for page in pagify(richText):
+                await ctx.send(page)
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
@@ -215,7 +252,7 @@ class YouTube(commands.Cog):
         This feature is only available on Community Servers.
         """
         if 'COMMUNITY' not in ctx.guild.features:
-            return await ctx.send(_("This function is only available on Community Servers."))
+            return await ctx.send(error(_("This function is only available on Community Servers.")))
 
         async with ctx.typing():
             yid = await self.get_youtube_channel(ctx, channelYouTube)
@@ -238,11 +275,11 @@ class YouTube(commands.Cog):
 
             if notNews:
                 if len(notNews) == 1:
-                    await ctx.send(_("The channel {list} is not an Announcement Channel.").format(list=humanize_list(notNews)))
+                    await ctx.send(warning(_("The channel {list} is not an Announcement Channel.").format(list=humanize_list(notNews))))
                 else:
-                    await ctx.send(_("The channels {list} are not Announcement Channels.").format(list=humanize_list(notNews)))
+                    await ctx.send(warning(_("The channels {list} are not Announcement Channels.").format(list=humanize_list(notNews))))
             elif not dchan:
-                await ctx.send(_("Subscription not found."))
+                await ctx.send(error(_("Subscription not found.")))
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
@@ -260,35 +297,53 @@ class YouTube(commands.Cog):
                 embed.title = f"Subscription information for {sub.get(yid).get('name')}"
                 embed.url = f"https://www.youtube.com/channel/{yid}/"
                 embed.timestamp = datetime.fromtimestamp(sub.get(yid).get('updated'))
-                embed.set_footer(text=_("Latest video"), icon_url="attachment://youtube_social_icon_red.png")
 
-                dchan = None
-                for channel in ctx.guild.channels:
+                if ctx.command.qualified_name == 'youtube infoall':
+                    channels = []
+                    for channel in sub.get(yid).get('discord').keys():
+                        channels.append(self.bot.get_channel(int(channel)))
+                else:
+                    channels = ctx.guild.channels
+
+                info = []
+                for channel in channels:
                     dchan = str(channel.id)
                     if dchan in sub.get(yid).get('discord').keys():
-                        info = []
+                        title = _("Posted to {channel}").format(channel=f"<#{channel.id}>")
+                        if ctx.command.qualified_name == 'youtube infoall':
+                            title += f" ({channel.guild})"
+                        part = bold(title)
+
                         if message := sub.get(yid).get('discord').get(dchan).get('message'):
-                            info.append(_("Custom: \"{message}\"").format(message=escape(message, formatting=True)))
+                            part += "\n" + _("Custom: \"{message}\"").format(message=escape(message, formatting=True))
 
                         if mention := sub.get(yid).get('discord').get(dchan).get('mention'):
                             mention = ctx.guild.default_role if mention == ctx.guild.id else f"<@&{mention}>"
-                            info.append(_("Mention: {mention}").format(mention=mention))
+                            part += "\n" + _("Mention: {mention}").format(mention=mention)
 
                         if sub.get(yid).get('discord').get(dchan).get('publish'):
                             msg = _("Yes")
                             if not channel.is_news():
                                 msg = _("Yes, but not an Announcement Channel")
-                            info.append(_("Publish: {message}").format(message=msg))
+                            part += "\n" + _("Publish: {message}").format(message=msg)
 
-                        info = "\n".join(info) if info else "\u200b"
-                        embed.add_field(name=_("Posted to {channel}").format(channel=f"#{channel.name}"), value=info, inline=False)
-                if not dchan:
-                    return await ctx.send(_("Subscription not found."))
+                        info.append(part + "\n")
+
+                embed.description = "\n".join(info) if info else "\u200b"
+                if not info:
+                    return await ctx.send(error(_("Subscription not found.")))
                 icon = discord.File(bundled_data_path(self) / "youtube_social_icon_red.png", filename="youtube_social_icon_red.png")
+                embed.set_footer(text=_("Latest video"), icon_url="attachment://youtube_social_icon_red.png")
                 await ctx.send(file=icon, embed=embed)
 
     @checks.is_owner()
-    @youtube.command(hidden=True)
+    @youtube.command()
+    async def infoall(self, ctx: commands.Context, channelYouTube: str) -> None:
+        """Provides information about a YouTube subscription across servers."""
+        await self.info(ctx, channelYouTube)
+
+    @checks.is_owner()
+    @youtube.command()
     async def interval(self, ctx: commands.Context, interval: Optional[int]) -> None:
         """Set the interval in seconds at which to check for updates.
 
@@ -299,11 +354,17 @@ class YouTube(commands.Cog):
             interval = await self.config.interval()
             return await ctx.send(_("I am currently checking every {time} for new videos.").format(time=humanize_timedelta(seconds=interval)))
         elif interval < 60:
-            return await ctx.send(_("You cannot set the interval to less than 60 seconds"))
+            return await ctx.send(error(_("You cannot set the interval to less than 60 seconds")))
 
         await self.config.interval.set(interval)
         self.background_get_new_videos.change_interval(seconds=interval)
-        await ctx.send(_("I will now check every {time} for new videos.").format(time=humanize_timedelta(seconds=interval)))
+        await ctx.send(success(_("I will now check every {time} for new videos.").format(time=humanize_timedelta(seconds=interval))))
+
+    @checks.is_owner()
+    @youtube.command()
+    async def listall(self, ctx: commands.Context) -> None:
+        """List current subscriptions across servers."""
+        await self.list(ctx)
 
     @checks.is_owner()
     @youtube.command(hidden=True)
@@ -314,7 +375,7 @@ class YouTube(commands.Cog):
         channels = 0
         for g in self.bot.guilds:
             guild = self.bot.get_guild(g.id)
-            for _ in await TubeConfig.guild(guild).subscriptions():
+            for x in await TubeConfig.guild(guild).subscriptions():
                 channels += 1
 
         if channels == 0:
@@ -371,7 +432,7 @@ class YouTube(commands.Cog):
                             await response.delete()
                         with contextlib.suppress(commands.ExtensionNotLoaded):
                             ctx.bot.unload_extension('Tube')
-                await ctx.send(_("Migration completed!"))
+                await ctx.send(success(_("Migration completed!")))
         else:
             await ctx.send(_("Migration has been cancelled."))
 
@@ -514,7 +575,7 @@ class YouTube(commands.Cog):
         except:
             pass
 
-        await ctx.send(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube)))
+        await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
 
     async def subscription_discord_options(self, ctx: commands.Context, action: str, channelYouTube: str, data: Optional, channelDiscord: Optional[discord.TextChannel] = None) -> None:
         """Store custom options for Discord channels."""
@@ -529,7 +590,7 @@ class YouTube(commands.Cog):
         elif action == 'publish':
             actionName = _("Publishing")
         else:
-            return await ctx.send(_("Unknown action: {action}").format(action=action))
+            return await ctx.send(error(_("Unknown action: {action}").format(action=action)))
 
         updated = []
         subs = await self.config.subs()
@@ -561,7 +622,7 @@ class YouTube(commands.Cog):
                 else:
                     await ctx.send(_("{action} for {title} removed from {list}.").format(action=actionName, title=feedTitle, list=humanize_list(channels)))
         else:
-            await ctx.send(_("Subscription not found."))
+            await ctx.send(error(_("Subscription not found.")))
 
     async def red_delete_data_for_user(self, *, requester: RequestType, user_id: int) -> None:
         pass

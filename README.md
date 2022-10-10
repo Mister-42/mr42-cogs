@@ -58,7 +58,9 @@ Biggest advantages over `Tube`:
 
 | Command    | Description |
 | :--------- | :---------- |
+| `infoall`  | Provides information about a YouTube subscription across servers |
 | `interval` | Set the interval in seconds at which to check for updates |
+| `listall`  | List current subscriptions across servers |
 | `migrate`  | Import all subscriptions from the `Tube` cog |
 
 ### Credits
