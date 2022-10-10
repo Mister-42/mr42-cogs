@@ -145,9 +145,10 @@ class YouTube(commands.Cog):
 
             channels = [channelDiscord] if channelDiscord else ctx.guild.channels
             if ctx.command.qualified_name == 'youtube listall':
-                channels = []
-                for channel in sub.get('discord').keys():
-                    channels.append(self.bot.get_channel(int(channel)))
+                channels = [
+                    self.bot.get_channel(int(channel))
+                    for channel in sub.get('discord').keys()
+                ]
 
             guildSub = False
             for channel in channels:
@@ -299,9 +300,11 @@ class YouTube(commands.Cog):
                 embed.timestamp = datetime.fromtimestamp(sub.get(yid).get('updated'))
 
                 if ctx.command.qualified_name == 'youtube infoall':
-                    channels = []
-                    for channel in sub.get(yid).get('discord').keys():
-                        channels.append(self.bot.get_channel(int(channel)))
+                    channels = [
+                        self.bot.get_channel(int(channel))
+                        for channel in sub.get(yid).get('discord').keys()
+                    ]
+
                 else:
                     channels = ctx.guild.channels
 
@@ -375,7 +378,7 @@ class YouTube(commands.Cog):
         channels = 0
         for g in self.bot.guilds:
             guild = self.bot.get_guild(g.id)
-            for x in await TubeConfig.guild(guild).subscriptions():
+            for _ in await TubeConfig.guild(guild).subscriptions():
                 channels += 1
 
         if channels == 0:
@@ -517,7 +520,11 @@ class YouTube(commands.Cog):
                             description = custom or _("New video from {author}: {title}").format(author=bold(entry['author']), title=bold(entry['title']))
                             if role:
                                 description = f"{role} {description}"
-                            message = await channel.send(content=description + f" https://youtu.be/{entry['yt_videoid']}", allowed_mentions=mentions)
+                            message = await channel.send(
+                                content=f"{description} https://youtu.be/{entry['yt_videoid']}",
+                                allowed_mentions=mentions,
+                            )
+
 
                         if data.get('discord').get(dchan).get('publish'):
                             if channel.is_news():
