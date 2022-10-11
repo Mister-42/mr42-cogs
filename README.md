@@ -8,7 +8,6 @@ Here are the [Red](https://github.com/Cog-Creators/Red-DiscordBot) commands to a
 
 You may be prompted to respond with "I agree" after that.
 
-
 # Cogs
 
 You can install individual cogs with the following command. Replace `[cog]` with the name of the cog you want to install.
@@ -18,8 +17,8 @@ You can install individual cogs with the following command. Replace `[cog]` with
 
 | Cog                 | Description |
 | :------------------ | :---------- |
-| [avatar](#avatar)   | Returns a user's avatar as attachment. |
-| [youtube](#youtube) | Posts in a channel every time a new video is added to a YouTube channel. |
+| [avatar](#avatar)   | Returns a user's avatar as attachment |
+| [youtube](#youtube) | Posts in a channel every time a new video is added to a YouTube channel |
 
 ---
 

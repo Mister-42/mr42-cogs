@@ -3,17 +3,16 @@ import contextlib
 import discord
 import feedparser
 import logging
-import math
 import pytube
 import re
 
 from datetime import datetime
 from discord.ext import tasks
 from typing import Literal, NoReturn, Optional, Union
-from redbot.core import Config, bot, checks, commands
+from redbot.core import Config, checks, commands
 from redbot.core.bot import Red
 from redbot.core.data_manager import bundled_data_path
-from redbot.core.i18n import Translator, cog_i18n, get_regional_format
+from redbot.core.i18n import Translator, cog_i18n
 from redbot.core.utils.chat_formatting import bold, error, escape, humanize_list, humanize_timedelta, inline, pagify, text_to_file, warning, success
 from redbot.core.utils.predicates import MessagePredicate
 
@@ -92,7 +91,7 @@ class YouTube(commands.Cog):
 
         await self.config.subs.set(subs)
         if ctx.command.qualified_name != 'youtube migrate':
-            await ctx.send(success(_("YouTube channel {title} will now be announced in {channel} when new videos are published.").format(title=bold(feedTitle), channel=f"<#{channel.id}>")))
+            await ctx.send(success(_("YouTube channel {title} will now be announced in {channel} when new videos are published.").format(title=bold(feedTitle), channel=channel.mention)))
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
@@ -115,10 +114,10 @@ class YouTube(commands.Cog):
                     for channel in ctx.guild.channels:
                         if str(channel.id) in sub.get(yid).get('discord').keys():
                             sub.get(yid).get('discord').pop(str(channel.id))
-                            updated.append(f"<#{channel.id}>")
+                            updated.append(channel.mention)
                 elif str(channelDiscord.id) in sub.get(yid).get('discord').keys():
                     sub.get(yid).get('discord').pop(str(channelDiscord.id))
-                    updated.append(f"<#{channelDiscord.id}>")
+                    updated.append(channelDiscord.mention)
                 # Remove from config if no Discord channels are left
                 if not sub.get(yid).get('discord'):
                     sub.clear()
@@ -183,12 +182,10 @@ class YouTube(commands.Cog):
             count = len(sub_ids)
             channel = self.bot.get_channel(sub)
 
-            guild = ""
-            if ctx.command.qualified_name == 'youtube listall':
-                guild = f" ({channel.guild})"
             msg = _("{count} YouTube subscriptions for {channel}") if subCount > 1 else _("1 YouTube subscription for {channel}")
             title = msg.format(count=count, channel=f"#{channel.name}")
-            richTitle = msg.format(count=count, channel=f"<#{channel.id}>")
+            richTitle = msg.format(count=count, channel=channel.mention)
+            guild = f" ({channel.guild})" if ctx.command.qualified_name == 'youtube listall' else ""
             text += "\n\n" + title + guild
             richText += "\n\n" + bold(richTitle + guild)
 
@@ -254,7 +251,7 @@ class YouTube(commands.Cog):
                 for channel in channels:
                     if str(channel.id) in dchannels.keys():
                         if not channel.is_news():
-                            notNews.append(f"<#{channel.id}>")
+                            notNews.append(channel.mention)
                             continue
                         dchan = str(channel.id)
                         publish = not dchannels.get(dchan).get('publish')
@@ -293,7 +290,7 @@ class YouTube(commands.Cog):
                 for channel in channels:
                     dchan = str(channel.id)
                     if dchan in sub.get(yid).get('discord').keys():
-                        title = _("Posted to {channel}").format(channel=f"<#{channel.id}>")
+                        title = _("Posted to {channel}").format(channel=channel.mention)
                         if ctx.command.qualified_name == 'youtube infoall':
                             title += f" ({channel.guild})"
                         part = bold(title)
@@ -453,18 +450,14 @@ class YouTube(commands.Cog):
                             log.warning(f"Removed invalid channel {dchan} for subscription {yid}")
                             continue
 
-                        for g in self.bot.guilds:
-                            for c in g.channels:
-                                if int(dchan) == c.id:
-                                    guild = g
-                        if not channel.permissions_for(guild.me).send_messages:
+                        if not channel.permissions_for(channel.guild.me).send_messages:
                             log.warning(f"Not allowed to post messages to {channel}")
                             continue
 
                         mentions = discord.AllowedMentions()
                         if role := data.get('discord').get(dchan).get('mention'):
-                            if role == guild.id:
-                                role = guild.default_role
+                            if role == channel.guild.id:
+                                role = channel.guild.default_role
                                 mentions = discord.AllowedMentions(everyone=True)
                             else:
                                 role = f"<@&{role}>"
@@ -481,7 +474,7 @@ class YouTube(commands.Cog):
                             }
                             custom = custom.format(**options)
 
-                        if channel.permissions_for(guild.me).embed_links:
+                        if channel.permissions_for(channel.guild.me).embed_links:
                             embed = discord.Embed()
                             embed.colour = YT_COLOR
                             embed.title = entry['title']
@@ -581,14 +574,14 @@ class YouTube(commands.Cog):
             if not channelDiscord:
                 for channel in ctx.guild.channels:
                     if str(channel.id) in sub.get(yid).get('discord').keys():
-                        updated.append(channel.id)
+                        updated.append(channel)
                         chan = str(channel.id)
                         if data:
                             sub.get(yid).get('discord').get(chan).update({action: data})
                         elif sub.get(yid).get('discord').get(chan).get(action):
                             sub.get(yid).get('discord').get(chan).pop(action)
             elif str(channelDiscord.id) in sub.get(yid).get('discord').keys():
-                updated.append(channelDiscord.id)
+                updated.append(channelDiscord)
                 chan = str(channelDiscord.id)
                 if data:
                     sub.get(yid).get('discord').get(chan).update({action: data})
@@ -599,7 +592,7 @@ class YouTube(commands.Cog):
             return await ctx.send(error(_("Subscription not found.")))
         await self.config.subs.set(subs)
         if ctx.command.qualified_name != 'youtube migrate':
-            channels = [f"<#{update}>" for update in updated]
+            channels = [update.mention for update in updated]
             msg = _("{action} for {title} removed from {list}.")
             if data:
                 msg = _("{action} for {title} added to {list}.")
