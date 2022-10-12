@@ -28,9 +28,16 @@ class YouTube(commands.Cog):
 
     def __init__(self, bot: Red) -> None:
         self.bot = bot
-        self.config = Config.get_conf(self, identifier=823288853745238067, force_registration=True)
-        self.config.register_global(subs=[], interval=300)
+        self.config = Config.get_conf(self, identifier=823288853745238067)
+        self.config.register_global(interval=300)
+
+        sub = {'yid': {"name": "YouTube", "updated": 0, "processed": [], "discord": {"dchan": {'message': None, "mention": None, "publish": False}}}}
+        self.config.init_custom('subscriptions', 1)
+        self.config.register_custom('subscriptions', **sub)
         self.background_get_new_videos.start()
+
+    async def cog_load(self):
+        await self.upgrade_db()
 
     @commands.group(aliases=['yt'])
     async def youtube(self, ctx: commands.Context) -> NoReturn:
@@ -52,18 +59,17 @@ class YouTube(commands.Cog):
             if not yid:
                 return
 
-            subs = await self.config.subs()
             channel = channelDiscord or ctx.channel
-            if sub := next((sub for sub in subs if sub.get(yid)), None):
+            if dchans := await self.config.custom('subscriptions', yid).discord():
                 # YouTube channel already exists in config
-                if str(channel.id) in sub.get(yid).get('discord').keys():
+                if str(channel.id) in dchans.keys():
                     # Already subsribed, do nothing!
                     return await ctx.send(warning(_("This subscription already exists!")))
 
                 # Adding Discord channel to existing YouTube subscription
-                newChannel = {channel.id: {'publish': False}}
-                sub.get(yid).get('discord').update(newChannel)
-                feedTitle = sub.get(yid).get('name')
+                dchans.update({channel.id: {}})
+                await self.config.custom('subscriptions', yid).discord.set(dchans)
+                feedTitle = await self.config.custom('subscriptions', yid).name()
             else:
                 # YouTube channel does not exist in config
                 try:
@@ -80,16 +86,13 @@ class YouTube(commands.Cog):
                     updated = int(datetime.strptime(feed['feed']['published'], YT_FORMAT).timestamp())
 
                 newChannel = {
-                    yid: {
-                        'name': feedTitle,
-                        'updated': updated,
-                        'processed': processed,
-                        'discord': {channel.id: {'publish': False}}
-                    }
+                    'name': feedTitle,
+                    'updated': updated,
+                    'processed': processed,
+                    'discord': {channel.id: {}}
                 }
-                subs.append(newChannel)
+                await self.config.custom('subscriptions', yid).set(newChannel)
 
-        await self.config.subs.set(subs)
         if ctx.command.qualified_name != 'youtube migrate':
             await ctx.send(success(_("YouTube channel {title} will now be announced in {channel} when new videos are published.").format(title=bold(feedTitle), channel=channel.mention)))
 
@@ -106,26 +109,25 @@ class YouTube(commands.Cog):
                 return
 
             updated = []
-            subs = await self.config.subs()
-            if sub := next((sub for sub in subs if sub.get(yid)), None):
+            if sub := await self.config.custom('subscriptions', yid).discord():
                 # YouTube channel exists in config
-                feedTitle = sub.get(yid).get('name')
+                feedTitle = await self.config.custom('subscriptions', yid).name()
                 if not channelDiscord:
                     for channel in ctx.guild.channels:
-                        if str(channel.id) in sub.get(yid).get('discord').keys():
-                            sub.get(yid).get('discord').pop(str(channel.id))
+                        if str(channel.id) in sub.keys():
+                            sub.pop(str(channel.id))
                             updated.append(channel.mention)
-                elif str(channelDiscord.id) in sub.get(yid).get('discord').keys():
-                    sub.get(yid).get('discord').pop(str(channelDiscord.id))
+                elif str(channelDiscord.id) in sub.keys():
+                    sub.pop(str(channelDiscord.id))
                     updated.append(channelDiscord.mention)
-                # Remove from config if no Discord channels are left
-                if not sub.get(yid).get('discord'):
-                    sub.clear()
+
+                if sub.keys():
+                    await self.config.custom('subscriptions', yid).discord.set(sub)
+                else:
+                    await self.config.custom('subscriptions', yid).clear()
 
             if not updated:
                 return await ctx.send(error(_("Subscription not found.")))
-            subs = list(filter(None, subs))
-            await self.config.subs.set(subs)
             await ctx.send(success(_("Unsubscribed from {title} on {list}.").format(title=bold(feedTitle), list=humanize_list(updated))))
 
     @checks.admin_or_permissions(manage_guild=True)
@@ -137,23 +139,24 @@ class YouTube(commands.Cog):
         subsByChannel = {}
         subCount = subCountYt = 0
 
-        for sub in await self.config.subs():
-            channelYouTube, sub = sub.popitem()
+        for yid in await self.config.custom('subscriptions').get_raw():
+            dchans = await self.config.custom('subscriptions', yid).discord()
 
             channels = [channelDiscord] if channelDiscord else ctx.guild.channels
             if ctx.command.qualified_name == 'youtube listall':
-                channels = [self.bot.get_channel(int(channel)) for channel in sub.get('discord').keys()]
+                channels = [self.bot.get_channel(int(channel)) for channel in dchans.keys()]
 
             guildSub = False
             for channel in channels:
                 subsByChannel[channel.id] = []
                 dchan = str(channel.id)
-                if dchan in sub.get('discord').keys():
+                if dchan in dchans.keys():
                     guildSub = True
                     subCount += 1
                     d = {'message': '\u1d9c', 'mention': '\u1d50', 'publish': '\u1d56'}
-                    tags = ''.join(v for k, v in d.items() if sub.get('discord').get(dchan).get(k, False))
-                    guildSubs.append({'name': sub.get('name'), 'id': channelYouTube, 'updated': sub.get('updated'), 'discord': channel, 'tags': tags})
+                    sub = self.config.custom('subscriptions', yid)
+                    tags = ''.join(v for k, v in d.items() if k in dchans.get(dchan))
+                    guildSubs.append({'name': await sub.name(), 'id': yid, 'updated': await sub.updated(), 'discord': channel, 'tags': tags})
             if guildSub:
                 subCountYt += 1
 
@@ -169,8 +172,7 @@ class YouTube(commands.Cog):
             subsByChannel[channel].append(f"{p1} {p2}" if subCount > 50 else f"{inline(p1)} {p2}")
         subsByChannel = {k:v for k,v in subsByChannel.items() if v != []}
 
-        text = ""
-        richText = ""
+        text = richText = ""
         subsByChannelSorted = dict(sorted(subsByChannel.items()))
         if len(subsByChannel) > 1:
             text = _("{count} total subscriptions").format(count=subCount)
@@ -246,15 +248,14 @@ class YouTube(commands.Cog):
             dchan = False
             notNews = []
             channels = [channelDiscord] if channelDiscord else ctx.guild.channels
-            if sub := next((sub for sub in await self.config.subs() if sub.get(yid)), None):
-                dchannels = sub.get(yid).get('discord')
+            if dchans := await self.config.custom('subscriptions', yid).discord():
                 for channel in channels:
-                    if str(channel.id) in dchannels.keys():
+                    if str(channel.id) in dchans.keys():
                         if not channel.is_news():
                             notNews.append(channel.mention)
                             continue
                         dchan = str(channel.id)
-                        publish = not dchannels.get(dchan).get('publish')
+                        publish = not dchans.get(dchan).get('publish')
                         await self.subscription_discord_options(ctx, 'publish', yid, publish, channel)
 
             if notNews:
@@ -275,34 +276,35 @@ class YouTube(commands.Cog):
             if not yid:
                 return
 
-            if sub := next((sub for sub in await self.config.subs() if sub.get(yid)), None):
+            if dchans := await self.config.custom('subscriptions', yid).discord():
+                sub = self.config.custom('subscriptions', channelYouTube)
                 embed = discord.Embed()
                 embed.colour = YT_COLOR
-                embed.title = f"Subscription information for {sub.get(yid).get('name')}"
+                embed.title = _("Subscription information for {name}").format(name=await sub.name())
                 embed.url = f"https://www.youtube.com/channel/{yid}/"
-                embed.timestamp = datetime.fromtimestamp(sub.get(yid).get('updated'))
+                embed.timestamp = datetime.fromtimestamp(await sub.updated())
 
                 channels = ctx.guild.channels
                 if ctx.command.qualified_name == 'youtube infoall':
-                    channels = [self.bot.get_channel(int(channel)) for channel in sub.get(yid).get('discord').keys()]
+                    channels = [self.bot.get_channel(int(channel)) for channel in dchans.keys()]
 
                 info = []
                 for channel in channels:
                     dchan = str(channel.id)
-                    if dchan in sub.get(yid).get('discord').keys():
+                    if dchan in dchans.keys():
                         title = _("Posted to {channel}").format(channel=channel.mention)
                         if ctx.command.qualified_name == 'youtube infoall':
                             title += f" ({channel.guild})"
                         part = bold(title)
 
-                        if message := sub.get(yid).get('discord').get(dchan).get('message'):
+                        if message := dchans.get(dchan).get('message'):
                             part += "\n" + _("Custom: \"{message}\"").format(message=escape(message, formatting=True))
 
-                        if mention := sub.get(yid).get('discord').get(dchan).get('mention'):
+                        if mention := dchans.get(dchan).get('mention'):
                             mention = ctx.guild.default_role if mention == ctx.guild.id else f"<@&{mention}>"
                             part += "\n" + _("Mention: {mention}").format(mention=mention)
 
-                        if sub.get(yid).get('discord').get(dchan).get('publish'):
+                        if dchans.get(dchan).get('publish'):
                             msg = _("Yes")
                             if not channel.is_news():
                                 msg = _("Yes, but not an Announcement Channel")
@@ -419,34 +421,40 @@ class YouTube(commands.Cog):
 
     @tasks.loop(minutes=1)
     async def background_get_new_videos(self) -> None:
-        subs = await self.config.subs()
-        for sub in subs:
-            yid, data = next(iter(sub.items()))
-            upd = data.get('updated')
+        if discord.version_info.major == 1:
+            await self.upgrade_db()
 
-            # Always update the YouTube channel name
+        for yid in await self.config.custom('subscriptions').get_raw():
+            sub = self.config.custom('subscriptions', yid)
+            dchans = await self.config.custom('subscriptions', yid).discord()
+            upd = await sub.updated()
+            feed = feedparser.parse(await self.get_feed(yid))
+
             try:
-                feed = feedparser.parse(await self.get_feed(yid))
-                sub.get(yid).update({'name': feed['feed']['title']})
-            except:
+                name = await sub.name()
+                if name != feed['feed']['title']:
+                    await self.config.custom('subscriptions', yid).name.set(name)
+            except KeyError:
                 # Skip current run
                 log.warning(f"Unable to retrieve {yid}, skipped")
                 continue
 
             for entry in feed['entries'][:4][::-1]:
-                processed = sub.get(yid).get('processed')
+                processed = await sub.processed()
                 published = datetime.strptime(entry['published'], YT_FORMAT)
                 updated = datetime.strptime(entry['updated'], YT_FORMAT)
-                data.update({'updated': max(data.get('updated'), int(published.timestamp()))})
 
                 message = None
-                if updated.timestamp() > upd and entry['yt_videoid'] not in sub.get(yid).get('processed'):
-                    for dchan in data.get('discord').keys():
+                if updated.timestamp() > upd and entry['yt_videoid'] not in processed:
+                    await self.config.custom('subscriptions', yid).updated.set(int(published.timestamp()))
+                    for dchan in dchans.keys():
                         channel = self.bot.get_channel(int(dchan))
                         if not channel:
-                            data.get('discord').pop(dchan)
-                            if not data.get('discord'):
-                                sub.clear()
+                            dchans.pop(dchan)
+                            if dchans.keys():
+                                await self.config.custom('subscriptions', yid).discord.set(dchans)
+                            else:
+                                await self.config.custom('subscriptions', yid).clear()
                             log.warning(f"Removed invalid channel {dchan} for subscription {yid}")
                             continue
 
@@ -455,7 +463,7 @@ class YouTube(commands.Cog):
                             continue
 
                         mentions = discord.AllowedMentions()
-                        if role := data.get('discord').get(dchan).get('mention'):
+                        if role := dchans.get(dchan).get('mention'):
                             if role == channel.guild.id:
                                 role = channel.guild.default_role
                                 mentions = discord.AllowedMentions(everyone=True)
@@ -464,7 +472,7 @@ class YouTube(commands.Cog):
                                 mentions = discord.AllowedMentions(roles=True)
 
                         # Build custom message if set
-                        if custom := data.get('discord').get(dchan).get('message'):
+                        if custom := dchans.get(dchan).get('message'):
                             options = {
                                 'author': entry['author'],
                                 'title': entry['title'],
@@ -494,7 +502,7 @@ class YouTube(commands.Cog):
                                 description = f"{role} {description}"
                             message = await channel.send(content=f"{description} https://youtu.be/{entry['yt_videoid']}", allowed_mentions=mentions)
 
-                        if data.get('discord').get(dchan).get('publish'):
+                        if dchans.get(dchan).get('publish'):
                             if channel.is_news():
                                 with contextlib.suppress(discord.HTTPException):
                                     await message.publish()
@@ -502,10 +510,7 @@ class YouTube(commands.Cog):
                                 log.warning(f"Can't publish, this is not a news channel: {dchan}")
                 if message:
                     processed = [entry['yt_videoid']] + processed
-                    sub.get(yid).update({'processed': processed[:6]})
-
-            subs = list(filter(None, subs))
-            await self.config.subs.set(subs)
+                    await self.config.custom('subscriptions', yid).processed.set(processed[:6])
 
     @background_get_new_videos.before_loop
     async def wait_for_red(self) -> NoReturn:
@@ -528,7 +533,7 @@ class YouTube(commands.Cog):
         """Best effort to obtain YouTube Channel ID."""
         url = channelYouTube
         if match := re.compile("UC[-_A-Za-z0-9]{21}[AQgw]").fullmatch(channelYouTube):
-            if next((sub for sub in await self.config.subs() if sub.get(match.string)), None):
+            if await self.config.custom('subscriptions', match.string).discord():
                 return match.string
             url = f"https://www.youtube.com/channel/{match.string}"
 
@@ -558,6 +563,9 @@ class YouTube(commands.Cog):
         if not yid:
             return
 
+        if data == "":
+            data = None
+
         if action == 'message':
             actionName = _("Custom message")
         elif action == 'mention':
@@ -569,34 +577,50 @@ class YouTube(commands.Cog):
 
         updated = []
         subs = await self.config.subs()
-        if sub := next((sub for sub in subs if sub.get(yid)), None):
-            feedTitle = sub.get(yid).get('name')
+        if sub := await self.config.custom('subscriptions', yid).discord():
+            feedTitle = await self.config.custom('subscriptions', yid).name()
             if not channelDiscord:
                 for channel in ctx.guild.channels:
-                    if str(channel.id) in sub.get(yid).get('discord').keys():
+                    if str(channel.id) in sub.keys():
                         updated.append(channel)
-                        chan = str(channel.id)
+                        dchan = str(channel.id)
                         if data:
-                            sub.get(yid).get('discord').get(chan).update({action: data})
-                        elif sub.get(yid).get('discord').get(chan).get(action):
-                            sub.get(yid).get('discord').get(chan).pop(action)
-            elif str(channelDiscord.id) in sub.get(yid).get('discord').keys():
+                            sub.get(dchan).update({action: data})
+                        elif sub.get(dchan).get(action):
+                            sub.get(dchan).pop(action)
+                        await self.config.custom('subscriptions', yid).discord.set(sub)
+            elif str(channelDiscord.id) in sub.keys():
                 updated.append(channelDiscord)
-                chan = str(channelDiscord.id)
+                dchan = str(channelDiscord.id)
                 if data:
-                    sub.get(yid).get('discord').get(chan).update({action: data})
-                else:
-                    sub.get(yid).get('discord').get(chan).pop(action)
+                    sub.get(dchan).update({action: data})
+                elif sub.get(dchan).get(action):
+                    sub.get(dchan).pop(action)
+                await self.config.custom('subscriptions', yid).discord.set(sub)
 
         if not updated:
             return await ctx.send(error(_("Subscription not found.")))
-        await self.config.subs.set(subs)
+
         if ctx.command.qualified_name != 'youtube migrate':
             channels = [update.mention for update in updated]
             msg = _("{action} for {title} removed from {list}.")
             if data:
                 msg = _("{action} for {title} added to {list}.")
-            await ctx.send(msg.format(action=actionName, title=feedTitle, list=humanize_list(channels)))
+            await ctx.send(success(msg.format(action=actionName, title=feedTitle, list=humanize_list(channels))))
+
+    async def upgrade_db(self):
+        await self.config.custom('subscriptions').clear_all()
+        if oldconfig := await self.config.subs():
+            interval = await self.config.interval()
+            for oldSub in oldconfig:
+                yid, sub = oldSub.popitem()
+                for dchan in sub.get('discord').keys():
+                    if sub.get('discord').get(dchan).get('publish') == False:
+                        sub.get('discord').get(dchan).pop('publish')
+                await self.config.custom('subscriptions', yid).set(sub)
+            await self.config.clear_all_globals()
+            if interval != 300:
+                await self.config.interval.set(interval)
 
     async def red_delete_data_for_user(self, *, requester: RequestType, user_id: int) -> None:
         pass
