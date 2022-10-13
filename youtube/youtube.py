@@ -31,9 +31,8 @@ class YouTube(commands.Cog):
         self.config = Config.get_conf(self, identifier=823288853745238067)
         self.config.register_global(interval=300)
 
-        sub = {'yid': {"name": "YouTube", "updated": 0, "processed": [], "discord": {"dchan": {'message': None, "mention": None, "publish": False}}}}
         self.config.init_custom('subscriptions', 1)
-        self.config.register_custom('subscriptions', **sub)
+        self.config.register_custom('subscriptions')
         self.background_get_new_videos.start()
 
     async def cog_load(self):
@@ -71,10 +70,10 @@ class YouTube(commands.Cog):
                 feedTitle = await self.config.custom('subscriptions', yid).name()
             else:
                 # YouTube channel does not exist in config
-                feed = feedparser.parse(await self.get_feed(yid))
                 try:
+                    feed = feedparser.parse(await self.get_feed(yid))
                     feedTitle = feed['feed']['title']
-                except KeyError:
+                except (ConnectionError, KeyError):
                     return await ctx.send(error(_("Error getting channel feed. Make sure the input is correct.")))
 
                 processed = [entry['yt_videoid'] for entry in feed['entries'][:6]]
@@ -429,14 +428,13 @@ class YouTube(commands.Cog):
             sub = self.config.custom('subscriptions', yid)
             dchans = await self.config.custom('subscriptions', yid).discord()
             upd = await sub.updated()
-            feed = feedparser.parse(await self.get_feed(yid))
 
             try:
+                feed = feedparser.parse(await self.get_feed(yid))
                 name = feed['feed']['title']
                 if await sub.name() != name:
                     await self.config.custom('subscriptions', yid).name.set(name)
-            except KeyError:
-                # Skip current run
+            except (ConnectionError, KeyError):
                 log.warning(f"Unable to retrieve {yid} ({await sub.name()}), skipped")
                 continue
 
@@ -526,9 +524,8 @@ class YouTube(commands.Cog):
             try:
                 async with session.get(url) as response:
                     return await response.read()
-            except aiohttp.client_exceptions.ClientConnectionError as e:
-                log.exception(f"Fetch failed for url {url}: ", exc_info=e)
-                return
+            except (aiohttp.client_exceptions.ClientConnectorError, aiohttp.client_exceptions.ClientConnectionError):
+                raise ConnectionError
 
     async def get_youtube_channel(self, ctx: commands.Context, channelYouTube: str) -> Union[str, None]:
         """Best effort to obtain YouTube Channel ID."""
