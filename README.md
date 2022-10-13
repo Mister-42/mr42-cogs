@@ -1,7 +1,7 @@
 # Installation
 
 Here are the [Red](https://github.com/Cog-Creators/Red-DiscordBot) commands to add this repository. Replace `[p]` with you bot's prefix:
-```
+```text
 [p]load downloader
 [p]repo add mr42-cogs https://github.com/Mister-42/mr42-cogs
 ```
@@ -11,7 +11,7 @@ You may be prompted to respond with "I agree" after that.
 # Cogs
 
 You can install individual cogs with the following command. Replace `[cog]` with the name of the cog you want to install.
-```
+```text
 [p]cog install mr42-cogs [cog]
 ```
 
@@ -37,8 +37,8 @@ Returns a user's avatar as attachment.
 Posts in a channel every time a new video is added to a YouTube channel.
 
 Biggest advantages over `Tube`:
-- Fetch any YouTube feed only once per interval, independent of how many Discord channels are subscribed to it
-- Add YouTube channels or edit its options with almost any URL. No more fiddling around to get the Channel ID
+-  Fetch any YouTube feed only once per interval, independent of how many Discord channels are subscribed to it
+-  Add YouTube channels or edit its options with almost any URL. No more fiddling around to get the Channel ID
 
 ### Guild Commands
 

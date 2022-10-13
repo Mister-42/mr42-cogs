@@ -42,7 +42,6 @@ class YouTube(commands.Cog):
     @commands.group(aliases=['yt'])
     async def youtube(self, ctx: commands.Context) -> NoReturn:
         """Post when new videos are published to a YouTube channel."""
-        pass
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
@@ -72,10 +71,10 @@ class YouTube(commands.Cog):
                 feedTitle = await self.config.custom('subscriptions', yid).name()
             else:
                 # YouTube channel does not exist in config
+                feed = feedparser.parse(await self.get_feed(yid))
                 try:
-                    feed = feedparser.parse(await self.get_feed(yid))
                     feedTitle = feed['feed']['title']
-                except:
+                except KeyError:
                     return await ctx.send(error(_("Error getting channel feed. Make sure the input is correct.")))
 
                 processed = [entry['yt_videoid'] for entry in feed['entries'][:6]]
@@ -148,6 +147,8 @@ class YouTube(commands.Cog):
 
             guildSub = False
             for channel in channels:
+                if not channel:
+                    continue
                 subsByChannel[channel.id] = []
                 dchan = str(channel.id)
                 if dchan in dchans.keys():
@@ -315,8 +316,8 @@ class YouTube(commands.Cog):
                 embed.description = "\n".join(info) if info else "\u200b"
                 if not info:
                     return await ctx.send(error(_("Subscription not found.")))
-                icon = discord.File(bundled_data_path(self) / "youtube_social_icon_red.png", filename="youtube_social_icon_red.png")
-                embed.set_footer(text=_("Latest video"), icon_url="attachment://youtube_social_icon_red.png")
+                icon = discord.File(bundled_data_path(self) / "youtube_social_icon_red.png", filename="youtube.png")
+                embed.set_footer(text=_("Latest video"), icon_url="attachment://youtube.png")
                 await ctx.send(file=icon, embed=embed)
 
     @checks.is_owner()
@@ -431,12 +432,12 @@ class YouTube(commands.Cog):
             feed = feedparser.parse(await self.get_feed(yid))
 
             try:
-                name = await sub.name()
-                if name != feed['feed']['title']:
+                name = feed['feed']['title']
+                if await sub.name() != name:
                     await self.config.custom('subscriptions', yid).name.set(name)
             except KeyError:
                 # Skip current run
-                log.warning(f"Unable to retrieve {yid}, skipped")
+                log.warning(f"Unable to retrieve {yid} ({await sub.name()}), skipped")
                 continue
 
             for entry in feed['entries'][:4][::-1]:
@@ -447,15 +448,12 @@ class YouTube(commands.Cog):
                 message = None
                 if updated.timestamp() > upd and entry['yt_videoid'] not in processed:
                     await self.config.custom('subscriptions', yid).updated.set(int(published.timestamp()))
-                    for dchan in dchans.keys():
+                    for dchan in list(dchans):
                         channel = self.bot.get_channel(int(dchan))
                         if not channel:
                             dchans.pop(dchan)
-                            if dchans.keys():
-                                await self.config.custom('subscriptions', yid).discord.set(dchans)
-                            else:
-                                await self.config.custom('subscriptions', yid).clear()
-                            log.warning(f"Removed invalid channel {dchan} for subscription {yid}")
+                            await self.config.custom('subscriptions', yid).discord.set(dchans)
+                            log.warning(f"Removed invalid channel {dchan} for subscription {yid} ({name})")
                             continue
 
                         if not channel.permissions_for(channel.guild.me).send_messages:
@@ -493,8 +491,8 @@ class YouTube(commands.Cog):
                             embed.set_author(name=entry['author'], url=entry['author_detail']['href'])
                             embed.set_image(url=entry['media_thumbnail'][0]['url'])
                             embed.timestamp = updated
-                            icon = discord.File(bundled_data_path(self) / "youtube_social_icon_red.png", filename="youtube_social_icon_red.png")
-                            embed.set_footer(text="YouTube", icon_url="attachment://youtube_social_icon_red.png")
+                            icon = discord.File(bundled_data_path(self) / "youtube_social_icon_red.png", filename="youtube.png")
+                            embed.set_footer(text="YouTube", icon_url="attachment://youtube.png")
                             message = await channel.send(role, file=icon, embed=embed, allowed_mentions=mentions)
                         else:
                             description = custom or _("New video from {author}: {title}").format(author=bold(entry['author']), title=bold(entry['title']))
@@ -511,6 +509,9 @@ class YouTube(commands.Cog):
                 if message:
                     processed = [entry['yt_videoid']] + processed
                     await self.config.custom('subscriptions', yid).processed.set(processed[:6])
+            if not dchans.keys():
+                await self.config.custom('subscriptions', yid).clear()
+                log.warning(f"Removed subscription {yid} ({name}): no subscribed channels left")
 
     @background_get_new_videos.before_loop
     async def wait_for_red(self) -> NoReturn:
@@ -576,7 +577,6 @@ class YouTube(commands.Cog):
             return await ctx.send(error(_("Unknown action: {action}").format(action=action)))
 
         updated = []
-        subs = await self.config.subs()
         if sub := await self.config.custom('subscriptions', yid).discord():
             feedTitle = await self.config.custom('subscriptions', yid).name()
             if not channelDiscord:
@@ -615,7 +615,7 @@ class YouTube(commands.Cog):
             for oldSub in oldconfig:
                 yid, sub = oldSub.popitem()
                 for dchan in sub.get('discord').keys():
-                    if sub.get('discord').get(dchan).get('publish') == False:
+                    if not sub.get('discord').get(dchan).get('publish'):
                         sub.get('discord').get(dchan).pop('publish')
                 await self.config.custom('subscriptions', yid).set(sub)
             await self.config.clear_all_globals()
