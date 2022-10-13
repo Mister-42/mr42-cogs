@@ -55,6 +55,7 @@ Biggest advantages over `Tube`:
 | `mention`    | Add or remove a role @mention in front of the message | `m`, `rolemention` |
 | `publish`    | Toggles publishing new messages                       | `p` |
 | `info`       | Provides information about a YouTube subscription     ||
+| `maxpages`   | Set the limit on amount of pages being sent           ||
 
 ### Bot Owner Commands
 

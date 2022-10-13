@@ -30,7 +30,7 @@ class YouTube(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=823288853745238067)
         self.config.register_global(interval=300)
-
+        self.config.register_guild(maxpages=3)
         self.config.init_custom('subscriptions', 1)
         self.config.register_custom('subscriptions')
         self.background_get_new_videos.start()
@@ -169,7 +169,7 @@ class YouTube(commands.Cog):
             p2 = escape(sub.get('name')[:50], formatting=True)
             if sub['tags']:
                 p2 += f" {sub['tags']}"
-            subsByChannel[channel].append(f"{p1} {p2}" if subCount > 50 else f"{inline(p1)} {p2}")
+            subsByChannel[channel].append({'id': p1, 'name': p2})
         subsByChannel = {k:v for k,v in subsByChannel.items() if v != []}
 
         text = richText = ""
@@ -192,13 +192,14 @@ class YouTube(commands.Cog):
             richText += "\n\n" + bold(richTitle + guild)
 
             for s in sub_ids:
-                text += f"\n{s}"
-                richText += f"\n{s}"
+                text += f"\n{s.get('id')} {s.get('name')}"
+                richText += f"\n{inline(s.get('id'))} {s.get('name')}"
 
-        if subCount > 50:
+        pages = list(pagify(richText))
+        if len(pages) > await self.config.guild(ctx.guild).maxpages():
             page = text_to_file(text.strip(), "subscriptions.txt")
             return await ctx.send(file=page)
-        for page in pagify(richText):
+        for page in pages:
             await ctx.send(page)
 
     @checks.admin_or_permissions(manage_guild=True)
@@ -318,6 +319,25 @@ class YouTube(commands.Cog):
                 icon = discord.File(bundled_data_path(self) / "youtube_social_icon_red.png", filename="youtube.png")
                 embed.set_footer(text=_("Latest video"), icon_url="attachment://youtube.png")
                 await ctx.send(file=icon, embed=embed)
+
+    @checks.admin_or_permissions(manage_guild=True)
+    @commands.guild_only()
+    @youtube.command()
+    async def maxpages(self, ctx: commands.Context, limit: Optional[int]) -> None:
+        """Set the limit on amount of pages being sent.
+        When the limit is reached, a text file will be sent instead.
+
+        Default is a maximum of 3 pages."""
+        maxPages = limit or await self.config.guild(ctx.guild).maxpages()
+        pages = f"{maxPages} pages"
+        if maxPages == 1:
+            pages = "1 page"
+
+        if limit is None:
+            return await ctx.send(_("I am currently sending a maximum of {limit} before sending a file instead.").format(limit=bold(pages)))
+
+        await self.config.guild(ctx.guild).maxpages.set(limit)
+        await ctx.send(success(_("I will now send a file after reaching {limit}.").format(limit=bold(pages))))
 
     @checks.is_owner()
     @youtube.command()
