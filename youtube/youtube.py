@@ -30,7 +30,7 @@ class YouTube(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=823288853745238067)
         self.config.register_global(interval=300)
-        self.config.register_guild(maxpages=3)
+        self.config.register_guild(maxpages=2)
         self.config.init_custom('subscriptions', 1)
         self.config.register_custom('subscriptions')
         self.background_get_new_videos.start()
@@ -327,7 +327,7 @@ class YouTube(commands.Cog):
         """Set the limit on amount of pages being sent.
         When the limit is reached, a text file will be sent instead.
 
-        Default is a maximum of 3 pages."""
+        Default is a maximum of 2 pages."""
         maxPages = limit or await self.config.guild(ctx.guild).maxpages()
         pages = f"{maxPages} pages"
         if maxPages == 1:
@@ -626,15 +626,14 @@ class YouTube(commands.Cog):
             await ctx.send(success(msg.format(action=actionName, title=feedTitle, list=humanize_list(channels))))
 
     async def upgrade_db(self):
-        await self.config.custom('subscriptions').clear_all()
         if oldconfig := await self.config.subs():
-            interval = await self.config.interval()
             for oldSub in oldconfig:
                 yid, sub = oldSub.popitem()
                 for dchan in sub.get('discord').keys():
                     if not sub.get('discord').get(dchan).get('publish'):
                         sub.get('discord').get(dchan).pop('publish')
                 await self.config.custom('subscriptions', yid).set(sub)
+            interval = await self.config.interval()
             await self.config.clear_all_globals()
             if interval != 300:
                 await self.config.interval.set(interval)
