@@ -14,7 +14,8 @@ from redbot.core.bot import Red
 from redbot.core.data_manager import bundled_data_path
 from redbot.core.i18n import Translator, cog_i18n
 from redbot.core.utils.chat_formatting import bold, error, escape, humanize_list, humanize_timedelta, inline, pagify, text_to_file, warning, success
-from redbot.core.utils.predicates import MessagePredicate
+from redbot.core.utils.menus import start_adding_reactions
+from redbot.core.utils.predicates import ReactionPredicate
 
 _ = Translator("YouTube", __file__)
 log = logging.getLogger("red.mr42-cogs.youtube")
@@ -50,8 +51,7 @@ class YouTube(commands.Cog):
 
         If no discord channel is specified, the current channel will be subscribed.
 
-        Channels can be added by channel ID, channel URL, video URL, or playlist URL.
-        """
+        Channels can be added by channel ID, channel URL, video URL, or playlist URL."""
         async with ctx.typing():
             yid = await self.get_youtube_channel(ctx, channelYouTube)
             if not yid:
@@ -148,7 +148,7 @@ class YouTube(commands.Cog):
             for channel in channels:
                 if not channel:
                     continue
-                subsByChannel[channel.id] = []
+                subsByChannel[channel.id] = {}
                 dchan = str(channel.id)
                 if dchan in dchans.keys():
                     guildSub = True
@@ -164,38 +164,37 @@ class YouTube(commands.Cog):
             return await ctx.send(warning(_("No subscriptions yet - try adding some!")))
 
         for sub in sorted(guildSubs, key=lambda d: d['updated'], reverse=True):
-            channel = sub['discord'].id
-            p1 = f"{sub['id']} {datetime.fromtimestamp(sub.get('updated'))}"
-            p2 = escape(sub.get('name')[:50], formatting=True)
+            name = sub['name']
             if sub['tags']:
-                p2 += f" {sub['tags']}"
-            subsByChannel[channel].append({'id': p1, 'name': p2})
-        subsByChannel = {k:v for k,v in subsByChannel.items() if v != []}
+                name += f" {sub['tags']}"
+            channel = sub['discord'].id
+            subsByChannel[channel].update({sub['id']: {'updated': sub['updated'], 'name': name}})
+        subsByChannel = {k:v for k,v in subsByChannel.items() if v}
 
         text = richText = ""
-        subsByChannelSorted = dict(sorted(subsByChannel.items()))
         if len(subsByChannel) > 1:
             text = _("{count} total subscriptions").format(count=subCount)
             if subCount != subCountYt:
                 text = _("{count} total subscriptions over {yt} YouTube channels").format(count=subCount, yt=subCountYt)
             richText = bold(text)
 
-        for sub, sub_ids in subsByChannelSorted.items():
+        for sub, sub_ids in sorted(subsByChannel.items()):
             count = len(sub_ids)
             channel = self.bot.get_channel(sub)
 
             msg = _("{count} YouTube subscriptions for {channel}") if subCount > 1 else _("1 YouTube subscription for {channel}")
-            title = msg.format(count=count, channel=f"#{channel.name}")
-            richTitle = msg.format(count=count, channel=channel.mention)
-            guild = f" ({channel.guild})" if ctx.command.qualified_name == 'youtube listall' else ""
-            text += "\n\n" + title + guild
-            richText += "\n\n" + bold(richTitle + guild)
+            text += "\n\n" + msg.format(count=count, channel=f"#{channel.name}")
+            richText += "\n\n" + bold(msg.format(count=count, channel=channel.mention))
+            if ctx.command.qualified_name == 'youtube listall':
+                text += f" ({channel.guild.name})"
+                richText += f" ({bold(channel.guild.name)})"
 
-            for s in sub_ids:
-                text += f"\n{s.get('id')} {s.get('name')}"
-                richText += f"\n{inline(s.get('id'))} {s.get('name')}"
+            for yid, data in sub_ids.items():
+                info = f"{yid} {datetime.fromtimestamp(data['updated'])}"
+                text += f"\n{info} {data['name']}"
+                richText += f"\n{inline(info)} {escape(data['name'], formatting=True)}"
 
-        pages = list(pagify(richText))
+        pages = list(pagify(richText.strip()))
         if len(pages) > await self.config.guild(ctx.guild).maxpages():
             page = text_to_file(text.strip(), "subscriptions.txt")
             return await ctx.send(file=page)
@@ -206,27 +205,25 @@ class YouTube(commands.Cog):
     @commands.guild_only()
     @youtube.command(aliases=['c', 'customize'])
     async def custom(self, ctx: commands.Context, channelYouTube: str, message: str = False, channelDiscord: Optional[discord.TextChannel] = None) -> NoReturn:
-        """ Add a custom message for new videos from a YouTube channel.
+        """Add a custom message for new videos from a YouTube channel.
 
-        You can use keys in your custom message, surrounded by curly braces, e.g.:
-        [p]youtube customize UCXuqSBlHAE6Xw-yeJA0Tunw "Linus from {author} is dropping things again!\\nCheck out their new video {title}" #video-updates
+        You can use keys in your custom message, surrounded by curly braces.
+        E.g. `[p]youtube customize UCXuqSBlHAE6Xw-yeJA0Tunw "Linus from **{author}** is dropping things again!\\nCheck out their new video {title}" #video-updates`
 
         Valid options are: {author}, {title}, {published}, {updated} and {summary}.
 
-        You can also remove customization by not specifying any message.
-        """
+        You can also remove customization by not specifying any message."""
         await self.subscription_discord_options(ctx, 'message', channelYouTube, message, channelDiscord)
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
     @youtube.command(aliases=['m', 'rolemention'])
     async def mention(self, ctx: commands.Context, channelYouTube: str, mention: Optional[discord.Role], channelDiscord: Optional[discord.TextChannel] = None) -> NoReturn:
-        """ Add a role @mention in front of the message.
+        """Add a role @mention in front of the message.
 
         Works for `@everyone` or any role. `@here` is not supported.
 
-        You can also remove the mention by not specifying any role.
-        """
+        You can also remove the mention by not specifying any role."""
         m = mention.id if mention else False
         await self.subscription_discord_options(ctx, 'mention', channelYouTube, m, channelDiscord)
 
@@ -236,8 +233,7 @@ class YouTube(commands.Cog):
     async def publish(self, ctx: commands.Context, channelYouTube: str, channelDiscord: Optional[discord.TextChannel] = None) -> None:
         """ Toggles publishing new messages to a Discord channel.
 
-        This feature is only available on Community Servers.
-        """
+        This feature is only available on Community Servers."""
         if 'COMMUNITY' not in ctx.guild.features:
             return await ctx.send(error(_("This function is only available on Community Servers.")))
 
@@ -325,7 +321,8 @@ class YouTube(commands.Cog):
     @youtube.command()
     async def maxpages(self, ctx: commands.Context, limit: Optional[int]) -> None:
         """Set the limit on amount of pages being sent.
-        When the limit is reached, a text file will be sent instead.
+
+        When the limit is reached, a text file will be sent instead, E.g. in `[p]youtube list`.
 
         Default is a maximum of 2 pages."""
         maxPages = limit or await self.config.guild(ctx.guild).maxpages()
@@ -338,6 +335,57 @@ class YouTube(commands.Cog):
 
         await self.config.guild(ctx.guild).maxpages.set(limit)
         await ctx.send(success(_("I will now send a file after reaching {limit}.").format(limit=bold(pages))))
+
+    @checks.is_owner()
+    @youtube.command()
+    async def delete(self, ctx: commands.Context, channelYouTube: str) -> None:
+        """Delete a YouTube channel from the configuration.
+
+        This cog does not detect if channels are removed or taken down, as this cannot be done reliably.
+
+        If you see your logs being filled with entries like the one below, there is a good chance the channel is no longer around.
+        `[WARNING] red.mr42-cogs.youtube: Unable to retrieve UCXuqSBlHAE6Xw-yeJA0Tunw (Linus Tech Tips), skipped`
+
+        You can delete such subscriptions with `[p]youtube delete UCXuqSBlHAE6Xw-yeJA0Tunw`."""
+        yid = await self.get_youtube_channel(ctx, channelYouTube)
+        if not yid:
+            return
+
+        channel = self.config.custom('subscriptions', yid)
+        name = await channel.name()
+        if not name:
+            return await ctx.send(error(_("Subscription not found.")))
+
+        dchans = []
+        for g in await channel.discord():
+            dchan = self.bot.get_channel(int(g))
+            if not dchan:
+                continue
+            dchans.append(f"{dchan.mention} ({dchan.guild})")
+
+        prompt = (_("You are about to remove {channel} from the configuration.").format(channel=bold(name))
+            + " " + _("It is subsribed to by {channels}.").format(channels=humanize_list(dchans))
+            + "\n" + _("Do you want to continue?")
+        )
+        query: discord.Message = await ctx.send(prompt)
+        start_adding_reactions(query, ReactionPredicate.YES_OR_NO_EMOJIS)
+        pred = ReactionPredicate.yes_or_no(query, ctx.author)
+
+        try:
+            await ctx.bot.wait_for("reaction_add", check=pred, timeout=30)
+        except asyncio.TimeoutError:
+            with contextlib.suppress(discord.NotFound):
+                await query.delete()
+
+        if not pred.result:
+            with contextlib.suppress(discord.NotFound):
+                await query.delete()
+            return await ctx.send(_("{channel} has not been deleted.").format(channel=bold(name)))
+        else:
+            with contextlib.suppress(discord.Forbidden):
+                await query.clear_reactions()
+            await self.config.custom('subscriptions', yid).clear()
+            await ctx.send(success(_("{channel} has been removed from the configuration.").format(channel=bold(name))))
 
     @checks.is_owner()
     @youtube.command()
@@ -384,20 +432,27 @@ class YouTube(commands.Cog):
         if channels == 0:
             return await ctx.send(error(_("No data found to import. Migration has been cancelled.")))
 
-        prompt = await ctx.send(_("You are about to import **{channels} YouTube subscriptions**.").format(channels=channels)
+        prompt = (_("You are about to import **{channels} YouTube subscriptions**.").format(channels=channels)
             + " " + _("Depending on the internet speed of the server, this might take a while.")
-            + " " + _("Do you want to continue?")
-            + "\n(yes/no)"
+            + "\n" + _("Do you want to continue?")
         )
-        response = await ctx.bot.wait_for("message", check=MessagePredicate.same_context(ctx))
+        query: discord.Message = await ctx.send(prompt)
+        start_adding_reactions(query, ReactionPredicate.YES_OR_NO_EMOJIS)
+        pred = ReactionPredicate.yes_or_no(query, ctx.author)
 
-        if not response.content.lower().startswith("y"):
+        try:
+            await ctx.bot.wait_for("reaction_add", check=pred, timeout=30)
+        except asyncio.TimeoutError:
+            with contextlib.suppress(discord.NotFound):
+                await query.delete()
+
+        if not pred.result:
+            with contextlib.suppress(discord.NotFound):
+                await query.delete()
             return await ctx.send(_("Migration has been cancelled."))
-
-        with contextlib.suppress(discord.NotFound):
-            await prompt.delete()
-        with contextlib.suppress(discord.HTTPException):
-            await response.delete()
+        else:
+            with contextlib.suppress(discord.Forbidden):
+                await query.clear_reactions()
             await ctx.send(_("Migration started…"))
             async with ctx.typing():
                 for g in self.bot.guilds:
@@ -428,15 +483,24 @@ class YouTube(commands.Cog):
                     else:
                         await ctx.send(_("Imported 1 subscription for {guild}.").format(guild=g.name))
             if 'Tube' in ctx.bot.extensions:
-                prompt = await ctx.send(_("Running the `Tube` cog alongside this cog *will* get spammy. Do you want to unload `Tube`?") + "\n(yes/no)")
-                response = await ctx.bot.wait_for("message", check=MessagePredicate.same_context(ctx))
-                if response.content.lower().startswith("y"):
+                prompt = (_("Running the `Tube` cog alongside this cog *will* get spammy. Do you want to unload `Tube`?"))
+                query: discord.Message = await ctx.send(prompt)
+                start_adding_reactions(query, ReactionPredicate.YES_OR_NO_EMOJIS)
+                pred = ReactionPredicate.yes_or_no(query, ctx.author)
+
+                try:
+                    await ctx.bot.wait_for("reaction_add", check=pred, timeout=30)
+                except asyncio.TimeoutError:
                     with contextlib.suppress(discord.NotFound):
-                        await prompt.delete()
-                    with contextlib.suppress(discord.HTTPException):
-                        await response.delete()
-                    with contextlib.suppress(commands.ExtensionNotLoaded):
-                        ctx.bot.unload_extension('Tube')
+                        await query.delete()
+
+                if not pred.result:
+                    with contextlib.suppress(discord.NotFound):
+                        await query.delete()
+                else:
+                    with contextlib.suppress(discord.Forbidden):
+                        await query.clear_reactions()
+                    ctx.bot.unload_extension('Tube')
             await ctx.send(success(_("Migration completed!")))
 
     @tasks.loop(minutes=1)
@@ -488,7 +552,7 @@ class YouTube(commands.Cog):
                                 mentions = discord.AllowedMentions(roles=True)
 
                         # Build custom message if set
-                        if custom := dchans.get(dchan).get('message'):
+                        if custom := dchans.get(dchan).get('message', ""): # Dpy2 can handle None natively
                             options = {
                                 'author': entry['author'],
                                 'title': entry['title'],
@@ -503,9 +567,7 @@ class YouTube(commands.Cog):
                             embed.colour = YT_COLOR
                             embed.title = entry['title']
                             embed.url = entry['link']
-                            # Check can be removed later, Dpy2 can handle None natively
-                            if custom:
-                                embed.description = custom
+                            embed.description = custom
                             embed.set_author(name=entry['author'], url=entry['author_detail']['href'])
                             embed.set_image(url=entry['media_thumbnail'][0]['url'])
                             embed.timestamp = updated
