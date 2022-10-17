@@ -108,25 +108,26 @@ class YouTube(commands.Cog):
                 return
 
             updated = []
-            if sub := await self.config.custom('subscriptions', yid).discord():
+            if dchans := await self.config.custom('subscriptions', yid).discord():
                 # YouTube channel exists in config
                 feedTitle = await self.config.custom('subscriptions', yid).name()
                 if not channelDiscord:
                     for channel in ctx.guild.channels:
-                        if str(channel.id) in sub.keys():
-                            sub.pop(str(channel.id))
+                        if str(channel.id) in sorted(dchans.keys()):
+                            dchans.pop(str(channel.id))
                             updated.append(channel.mention)
-                elif str(channelDiscord.id) in sub.keys():
-                    sub.pop(str(channelDiscord.id))
+                elif str(channelDiscord.id) in dchans.keys():
+                    dchans.pop(str(channelDiscord.id))
                     updated.append(channelDiscord.mention)
-
-                if sub.keys():
-                    await self.config.custom('subscriptions', yid).discord.set(sub)
-                else:
-                    await self.config.custom('subscriptions', yid).clear()
 
             if not updated:
                 return await ctx.send(error(_("Subscription not found.")))
+
+            if dchans.keys():
+                await self.config.custom('subscriptions', yid).discord.set(dchans)
+            else:
+                await self.config.custom('subscriptions', yid).clear()
+
             await ctx.send(success(_("Unsubscribed from {title} on {list}.").format(title=bold(feedTitle), list=humanize_list(updated))))
 
     @checks.admin_or_permissions(manage_guild=True)
@@ -276,12 +277,6 @@ class YouTube(commands.Cog):
 
             if dchans := await self.config.custom('subscriptions', yid).discord():
                 sub = self.config.custom('subscriptions', channelYouTube)
-                embed = discord.Embed()
-                embed.colour = YT_COLOR
-                embed.title = _("Subscription information for {name}").format(name=await sub.name())
-                embed.url = f"https://www.youtube.com/channel/{yid}/"
-                embed.timestamp = datetime.fromtimestamp(await sub.updated())
-
                 channels = ctx.guild.channels
                 if ctx.command.qualified_name == 'youtube infoall':
                     channels = [self.bot.get_channel(int(channel)) for channel in dchans.keys()]
@@ -289,14 +284,14 @@ class YouTube(commands.Cog):
                 info = []
                 for channel in channels:
                     dchan = str(channel.id)
-                    if dchan in dchans.keys():
+                    if dchan in sorted(dchans.keys()):
                         title = _("Posted to {channel}").format(channel=channel.mention)
                         if ctx.command.qualified_name == 'youtube infoall':
                             title += f" ({channel.guild})"
                         part = bold(title)
 
                         if message := dchans.get(dchan).get('message'):
-                            part += "\n" + _("Custom: \"{message}\"").format(message=escape(message, formatting=True))
+                            part += "\n" + _("Custom: {message}").format(message=escape(message, formatting=True))
 
                         if mention := dchans.get(dchan).get('mention'):
                             mention = ctx.guild.default_role if mention == ctx.guild.id else f"<@&{mention}>"
@@ -310,12 +305,22 @@ class YouTube(commands.Cog):
 
                         info.append(part + "\n")
 
-                embed.description = "\n".join(info) if info else "\u200b"
                 if not info:
                     return await ctx.send(error(_("Subscription not found.")))
-                icon = discord.File(bundled_data_path(self) / "youtube_social_icon_red.png", filename="youtube.png")
-                embed.set_footer(text=_("Latest video"), icon_url="attachment://youtube.png")
-                await ctx.send(file=icon, embed=embed)
+
+                if ctx.channel.permissions_for(ctx.guild.me).embed_links:
+                    embed = discord.Embed()
+                    embed.colour = YT_COLOR
+                    embed.title = _("Subscription information for {name}").format(name=await sub.name())
+                    embed.url = f"https://www.youtube.com/channel/{yid}/"
+                    embed.description = "\n".join(info).strip() if info else "\u200b"
+                    embed.timestamp = datetime.fromtimestamp(await sub.updated())
+                    icon = discord.File(bundled_data_path(self) / "youtube_social_icon_red.png", filename="youtube.png")
+                    embed.set_footer(text=_("Latest video"), icon_url="attachment://youtube.png")
+                    return await ctx.send(file=icon, embed=embed)
+                msg = _("Subscription information for {name}").format(name=await sub.name())
+                msg += "\n\n" + "\n".join(info).strip() if info else "\u200b"
+                await ctx.send(msg)
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
