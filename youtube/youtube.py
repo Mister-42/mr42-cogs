@@ -57,17 +57,12 @@ class YouTube(commands.Cog):
 
             channel = channelDiscord or ctx.channel
             if dchans := await self.config.custom('subscriptions', yid).discord():
-                # YouTube channel already exists in config
                 if str(channel.id) in dchans.keys():
-                    # Already subsribed, do nothing!
                     return await ctx.send(warning(_("This subscription already exists!")))
-
-                # Adding Discord channel to existing YouTube subscription
                 dchans.update({channel.id: {}})
                 await self.config.custom('subscriptions', yid).discord.set(dchans)
                 feedTitle = await self.config.custom('subscriptions', yid).name()
             else:
-                # YouTube channel does not exist in config
                 try:
                     feed = feedparser.parse(await self.get_feed(yid))
                     feedTitle = feed['feed']['title']
@@ -106,7 +101,6 @@ class YouTube(commands.Cog):
 
             updated = []
             if dchans := await self.config.custom('subscriptions', yid).discord():
-                # YouTube channel exists in config
                 feedTitle = await self.config.custom('subscriptions', yid).name()
                 if not channelDiscord:
                     for channel in ctx.guild.channels:
@@ -514,14 +508,15 @@ class YouTube(commands.Cog):
             try:
                 feed = feedparser.parse(await self.get_feed(yid))
                 name = feed['feed']['title']
-                if await sub.name() != name:
-                    await self.config.custom('subscriptions', yid).name.set(name)
             except (ConnectionError, KeyError):
                 log.warning(f"Unable to retrieve {yid} ({await sub.name()}), skipped")
                 continue
 
+            if name != await sub.name():
+                await self.config.custom('subscriptions', yid).name.set(name)
+
             dchans = await self.config.custom('subscriptions', yid).discord()
-            processed = await sub.processed()
+            processed = await sub.processed() or []
             upd = await sub.updated()
             for entry in feed['entries'][:4][::-1]:
                 published = datetime.strptime(entry['published'], YT_FORMAT)
@@ -550,7 +545,6 @@ class YouTube(commands.Cog):
                                 role = f"<@&{role}>"
                                 mentions = discord.AllowedMentions(roles=True)
 
-                        # Build custom message if set
                         if custom := dchans.get(dchan).get('message', ""): # Dpy2 can handle None natively
                             options = {
                                 'author': entry['author'],
