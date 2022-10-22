@@ -516,7 +516,7 @@ class YouTube(commands.Cog):
                 await self.config.custom('subscriptions', yid).name.set(name)
 
             dchans = await self.config.custom('subscriptions', yid).discord()
-            processed = await sub.processed() or []
+            processed = processedOrig = await sub.processed() or []
             upd = await sub.updated()
             for entry in feed['entries'][:4][::-1]:
                 published = datetime.strptime(entry['published'], YT_FORMAT)
@@ -580,7 +580,7 @@ class YouTube(commands.Cog):
                             else:
                                 log.warning(f"Can't publish, not a news channel: {dchan} ({channel.guild.name})")
 
-            if len(processed) > 6:
+            if processed != processedOrig:
                 await self.config.custom('subscriptions', yid).updated.set(int(published.timestamp()))
                 await self.config.custom('subscriptions', yid).processed.set(processed[:6])
 
