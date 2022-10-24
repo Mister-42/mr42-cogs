@@ -230,7 +230,7 @@ class YouTube(commands.Cog):
 
         This feature is only available on Community Servers."""
         if 'COMMUNITY' not in ctx.guild.features:
-            return await ctx.send(error(_("This function is only available on Community Servers.")))
+            return await ctx.send(error(_("This feature is only available on Community Servers.")))
 
         async with ctx.typing():
             yid = await self.get_youtube_channel(ctx, channelYouTube)
@@ -269,7 +269,7 @@ class YouTube(commands.Cog):
                 return
 
             if dchans := await self.config.custom('subscriptions', yid).discord():
-                sub = self.config.custom('subscriptions', channelYouTube)
+                sub = self.config.custom('subscriptions', yid)
                 channels = ctx.guild.channels
                 if ctx.command.qualified_name == 'youtube infoall':
                     channels = [self.bot.get_channel(int(channel)) for channel in dchans.keys()]
@@ -286,8 +286,12 @@ class YouTube(commands.Cog):
                         if message := dchans.get(dchan).get('message'):
                             part += "\n" + _("Custom: {message}").format(message=escape(message, formatting=True))
 
-                        if mention := dchans.get(dchan).get('mention'):
-                            mention = ctx.guild.default_role if mention == ctx.guild.id else f"<@&{mention}>"
+                        if m := dchans.get(dchan).get('mention'):
+                            mention = f"<@&{m}>"
+                            if m == ctx.guild.id:
+                                mention = ctx.guild.default_role
+                            elif m == "here":
+                                mention = "@here"
                             part += "\n" + _("Mention: {mention}").format(mention=mention)
 
                         if dchans.get(dchan).get('publish'):
