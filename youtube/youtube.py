@@ -211,13 +211,15 @@ class YouTube(commands.Cog):
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
     @youtube.command(aliases=['m', 'rolemention'])
-    async def mention(self, ctx: commands.Context, channelYouTube: str, mention: Optional[discord.Role], channelDiscord: Optional[discord.TextChannel] = None) -> NoReturn:
+    async def mention(self, ctx: commands.Context, channelYouTube: str, mention: Optional[Union[discord.Role, str]], channelDiscord: Optional[discord.TextChannel] = None) -> NoReturn:
         """Add a role @mention in front of the message.
 
-        Works for `@everyone` or any role. `@here` is not supported.
-
         You can also remove the mention by not specifying any role."""
-        m = mention.id if mention else False
+        m = False
+        if isinstance(mention, discord.Role):
+            m = mention.id
+        elif mention == "@here":
+            m = "here"
         await self.subscription_discord_options(ctx, 'mention', channelYouTube, m, channelDiscord)
 
     @checks.admin_or_permissions(manage_guild=True)
@@ -540,6 +542,9 @@ class YouTube(commands.Cog):
                         if role := dchans.get(dchan).get('mention'):
                             if role == channel.guild.id:
                                 role = channel.guild.default_role
+                                mentions = discord.AllowedMentions(everyone=True)
+                            elif role == "here":
+                                role = "@here"
                                 mentions = discord.AllowedMentions(everyone=True)
                             else:
                                 role = f"<@&{role}>"
