@@ -14,7 +14,7 @@ from redbot.core import Config, checks, commands
 from redbot.core.bot import Red
 from redbot.core.data_manager import bundled_data_path
 from redbot.core.i18n import Translator, cog_i18n
-from redbot.core.utils.chat_formatting import bold, error, escape, humanize_list, humanize_timedelta, inline, pagify, text_to_file, warning, success
+from redbot.core.utils.chat_formatting import bold, error, escape, humanize_list, humanize_timedelta, inline, pagify, success, text_to_file, warning
 from redbot.core.utils.menus import start_adding_reactions
 from redbot.core.utils.predicates import ReactionPredicate
 
@@ -329,9 +329,9 @@ class YouTube(commands.Cog):
 
         Default is a maximum of 2 pages."""
         maxPages = limit or await self.config.guild(ctx.guild).maxpages()
-        pages = f"{maxPages} pages"
+        pages = _("{pages} pages").format(pages=maxPages)
         if maxPages == 1:
-            pages = "1 page"
+            pages = _("1 page")
 
         if limit is None:
             return await ctx.send(_("I am currently sending a maximum of {limit} before sending a file instead.").format(limit=bold(pages)))

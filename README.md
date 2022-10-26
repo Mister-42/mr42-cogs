@@ -21,6 +21,7 @@ You can install individual cogs with the following command. Replace `[cog]` with
 | :------------------ | :---------- |
 | [avatar](#avatar)   | Returns a user's avatar as attachment |
 | [youtube](#youtube) | Posts in a channel every time a new video is added to a YouTube channel |
+| [ytdedup](#ytdedup) | Remove duplicate YouTube links in specified channels |
 
 ---
 
@@ -70,3 +71,15 @@ Biggest advantages over `Tube`:
 ### Credits
 
 Thanks to [Caleb](https://gitlab.com/CrunchBangDev) for making [Tube](https://gitlab.com/CrunchBangDev/cbd-cogs/-/tree/master/Tube), which was the base of this cog.
+
+## ytdedup
+
+Remove duplicate YouTube links in specified channels.
+
+### Commands
+
+| Prefix         | Option                              | Alias(es) |
+| :------------- | :---------------------------------- | :-------- |
+| `youtubededup` | Call this cog                       | `ytdd` |
+| `watch`        | Add a channel to be watched         | `w` |
+| `unwatch`      | Remove a channel from the watchlist | `u` |
