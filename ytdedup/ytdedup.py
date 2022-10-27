@@ -1,3 +1,4 @@
+import asyncio
 import contextlib
 import discord
 import logging
@@ -23,7 +24,7 @@ class YouTubeDeDup(commands.Cog):
     def __init__(self, bot: Red) -> None:
         self.bot = bot
         self.config = Config.get_conf(self, identifier=823288853745238067)
-        self.config.register_guild(history=7)
+        self.config.register_guild(history=7, notify=True)
         default_channel_settings = {"messages": {}}
         self.config.register_channel(**default_channel_settings)
         self.background_clean.start()
@@ -83,6 +84,17 @@ class YouTubeDeDup(commands.Cog):
         await self.config.guild(ctx.guild).history.set(history)
         await ctx.send(success(_("I will keep message history for {days}.").format(days=bold(days))))
 
+    @checks.admin_or_permissions(manage_guild=True)
+    @commands.guild_only()
+    @youtubededup.command()
+    async def notify(self, ctx: commands.Context) -> None:
+        """Toggle if the user is notified about the message deletion."""
+        notify = not await self.config.guild(ctx.guild).notify()
+        await self.config.guild(ctx.guild).notify.set(notify)
+
+        action = _("enabled") if notify else _("disabled")
+        await ctx.send(success(_("User notification has been {action}.").format(action=action)))
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
         if await self.config.channel(message.channel).messages():
@@ -128,7 +140,13 @@ class YouTubeDeDup(commands.Cog):
                     await previous.delete()
                 else:
                     log.info(f"Deleted new https://youtu.be/{vid} by {message.author.name} from #{channel.name} ({message.guild})")
-                    return await message.delete()
+                    if notify := await self.config.guild(channel.guild).notify():
+                        reply = await message.reply(warning(_("Hello {name}. I have deleted your link, as it was already posted here recently.").format(name=message.author.mention)))
+                    await message.delete()
+                    if notify:
+                        await asyncio.sleep(10)
+                        await reply.delete()
+                    return
 
             newVid = {
                 'msg': message.id,
