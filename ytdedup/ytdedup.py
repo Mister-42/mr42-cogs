@@ -1,3 +1,4 @@
+import contextlib
 import discord
 import logging
 import re
@@ -118,14 +119,16 @@ class YouTubeDeDup(commands.Cog):
             messages = await self.config.channel(channel).messages()
 
             if channel.permissions_for(message.guild.me).manage_messages and vid in [message for message in messages]:
+                previous = False
                 prevId = messages.get(vid).get('msg')
-                if previous := await channel.fetch_message(prevId):
-                    if message.author.bot:
-                        log.info(f"Deleted previous link to {vid} by {previous.author.mention} from {channel.name} ({message.guild})")
-                        await previous.delete()
-                    else:
-                        log.info(f"Deleted new link to {vid} by {message.author.mention} from {channel.name} ({message.guild})")
-                        return await message.delete()
+                with contextlib.suppress(discord.NotFound):
+                    previous = await channel.fetch_message(prevId)
+                if previous and message.author.bot:
+                    log.info(f"Deleted previous https://youtu.be/{vid} by {previous.author.name} from #{channel.name} ({message.guild})")
+                    await previous.delete()
+                else:
+                    log.info(f"Deleted new https://youtu.be/{vid} by {message.author.name} from #{channel.name} ({message.guild})")
+                    return await message.delete()
 
             newVid = {
                 'msg': message.id,
