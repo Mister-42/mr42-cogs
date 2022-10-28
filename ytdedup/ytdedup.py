@@ -88,7 +88,7 @@ class YouTubeDeDup(commands.Cog):
     @commands.guild_only()
     @youtubededup.command()
     async def notify(self, ctx: commands.Context) -> None:
-        """Toggle if the user is notified about the message deletion."""
+        """Toggle between informing the sender and complete silence."""
         notify = not await self.config.guild(ctx.guild).notify()
         await self.config.guild(ctx.guild).notify.set(notify)
 

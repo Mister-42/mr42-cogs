@@ -53,7 +53,7 @@ class YouTube(commands.Cog):
         async with ctx.typing():
             yid = await self.get_youtube_channel(ctx, channelYouTube)
             if not yid:
-                return
+                return await ctx.send(error(_("Error getting channel feed. Make sure your input is correct.")))
 
             channel = channelDiscord or ctx.channel
             if dchans := await self.config.custom('subscriptions', yid).discord():
@@ -64,22 +64,25 @@ class YouTube(commands.Cog):
                 feedTitle = await self.config.custom('subscriptions', yid).name()
             else:
                 try:
-                    feed = feedparser.parse(await self.get_feed(yid))
-                    feedTitle = feed['feed']['title']
-                except (ConnectionError, KeyError):
-                    return await ctx.send(error(_("Error getting channel feed. Make sure the input is correct.")))
+                    http, data = await self.get_feed(yid)
+                except ConnectionError:
+                    return await ctx.send(error(_("Unable to connect, please try again.")))
 
-                processed = [entry['yt_videoid'] for entry in feed['entries'][:6]]
+                if http != 200:
+                    return await ctx.send(error(_("Unknown error {error} for channel {channel}.").format(error=bold(http), channel=bold(yid))))
+
+                feed = feedparser.parse(data)
+                feedTitle = feed['feed']['title']
                 try:
-                    updated = int(datetime.strptime(feed['entries'][0]['published'], YT_FORMAT).timestamp())
+                    updated = datetime.strptime(feed['entries'][0]['published'], YT_FORMAT).timestamp()
                 except IndexError:
                     # No videos are published on the YouTube channel
-                    updated = int(datetime.strptime(feed['feed']['published'], YT_FORMAT).timestamp())
+                    updated = datetime.strptime(feed['feed']['published'], YT_FORMAT).timestamp()
 
                 newChannel = {
                     'name': feedTitle,
-                    'updated': updated,
-                    'processed': processed,
+                    'updated': int(updated),
+                    'processed': [entry['yt_videoid'] for entry in feed['entries'][:6]],
                     'discord': {channel.id: {}}
                 }
                 await self.config.custom('subscriptions', yid).set(newChannel)
@@ -347,7 +350,7 @@ class YouTube(commands.Cog):
         This cog does not detect if channels are removed or taken down, as this cannot be done reliably.
 
         If you see your logs being filled with entries like the one below, there is a good chance the channel is no longer around.
-        `[WARNING] red.mr42-cogs.youtube: Unable to retrieve UCXuqSBlHAE6Xw-yeJA0Tunw (Linus Tech Tips), skipped`
+        `[WARNING] red.mr42-cogs.youtube: Error 404, channel UCXuqSBlHAE6Xw-yeJA0Tunw (Linus Tech Tips) not found`
 
         You can delete such subscriptions with `[p]youtube delete UCXuqSBlHAE6Xw-yeJA0Tunw`."""
         yid = await self.get_youtube_channel(ctx, channelYouTube)
@@ -512,9 +515,21 @@ class YouTube(commands.Cog):
             sub = self.config.custom('subscriptions', yid)
 
             try:
-                feed = feedparser.parse(await self.get_feed(yid))
+                http, data = await self.get_feed(yid)
+            except ConnectionError:
+                continue
+
+            if http == 404:
+                log.warning(f"Error {http}, channel {yid} ({await sub.name()}) not found")
+                continue
+            elif http != 200:
+                log.warning(f"Unknown error {http} for {yid} ({await sub.name()})")
+                continue
+
+            feed = feedparser.parse(data)
+            try:
                 name = feed['feed']['title']
-            except (ConnectionError, KeyError):
+            except KeyError:
                 log.warning(f"Unable to retrieve {yid} ({await sub.name()}), skipped")
                 continue
 
@@ -605,11 +620,10 @@ class YouTube(commands.Cog):
 
     async def get_feed(self, channel: str) -> Union[aiohttp.StreamReader, None]:
         """Fetch data from a feed."""
-        url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel}"
         async with aiohttp.ClientSession() as session:
             try:
-                async with session.get(url) as response:
-                    return await response.read()
+                async with session.get(f"https://www.youtube.com/feeds/videos.xml?channel_id={channel}") as response:
+                    return response.status, await response.read()
             except (aiohttp.client_exceptions.ClientConnectorError, aiohttp.client_exceptions.ClientConnectionError):
                 raise ConnectionError
 
@@ -624,19 +638,19 @@ class YouTube(commands.Cog):
         # URL is a channel?
         try:
             return pytube.Channel(url).channel_id
-        except:
+        except Exception:
             pass
 
         # URL is a video?
         try:
             return pytube.YouTube(url).channel_id
-        except:
+        except Exception:
             pass
 
         # URL is a playlist?
         try:
             return pytube.Playlist(url).owner_id
-        except:
+        except Exception:
             pass
 
         await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
