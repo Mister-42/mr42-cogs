@@ -64,14 +64,14 @@ class YouTube(commands.Cog):
                 feedTitle = await self.config.custom('subscriptions', yid).name()
             else:
                 try:
-                    http, data = await self.get_feed(yid)
+                    feedData = await self.get_feed(yid)
                 except ConnectionError:
                     return await ctx.send(error(_("Unable to connect, please try again.")))
 
-                if http != 200:
-                    return await ctx.send(error(_("Unknown error {error} for channel {channel}.").format(error=bold(http), channel=bold(yid))))
+                if isinstance(feedData, aiohttp.ClientResponse):
+                    return await ctx.send(error(_("Error {error} for channel {channel}.").format(error=bold(f"{feedData.status} {feedData.reason}"), channel=bold(yid))))
 
-                feed = feedparser.parse(data)
+                feed = feedparser.parse(feedData)
                 feedTitle = feed['feed']['title']
                 try:
                     updated = datetime.strptime(feed['entries'][0]['published'], YT_FORMAT).timestamp()
@@ -350,7 +350,7 @@ class YouTube(commands.Cog):
         This cog does not detect if channels are removed or taken down, as this cannot be done reliably.
 
         If you see your logs being filled with entries like the one below, there is a good chance the channel is no longer around.
-        `[WARNING] red.mr42-cogs.youtube: Error 404, channel UCXuqSBlHAE6Xw-yeJA0Tunw (Linus Tech Tips) not found`
+        `[WARNING] red.mr42-cogs.youtube: Error 404 Not Found for channel UCXuqSBlHAE6Xw-yeJA0Tunw (Linus Tech Tips)`
 
         You can delete such subscriptions with `[p]youtube delete UCXuqSBlHAE6Xw-yeJA0Tunw`."""
         yid = await self.get_youtube_channel(ctx, channelYouTube)
@@ -515,29 +515,22 @@ class YouTube(commands.Cog):
             sub = self.config.custom('subscriptions', yid)
 
             try:
-                http, data = await self.get_feed(yid)
+                feedData = await self.get_feed(yid)
             except ConnectionError:
                 continue
 
-            if http == 404:
-                log.warning(f"Error {http}, channel {yid} ({await sub.name()}) not found")
-                continue
-            elif http != 200:
-                log.warning(f"Unknown error {http} for {yid} ({await sub.name()})")
+            if isinstance(feedData, aiohttp.ClientResponse):
+                log.warning(f"Error {feedData.status} {feedData.reason} for channel {yid} ({await sub.name()})")
                 continue
 
-            feed = feedparser.parse(data)
-            try:
-                name = feed['feed']['title']
-            except KeyError:
-                log.warning(f"Unable to retrieve {yid} ({await sub.name()}), skipped")
-                continue
-
+            feed = feedparser.parse(feedData)
+            name = feed['feed']['title']
             if name != await sub.name():
                 await self.config.custom('subscriptions', yid).name.set(name)
 
             dchans = await self.config.custom('subscriptions', yid).discord()
-            processed = processedOrig = await sub.processed() or []
+            processed = await sub.processed() or []
+            processedOrig = processed.copy()
             upd = await sub.updated()
             for entry in feed['entries'][:4][::-1]:
                 published = datetime.strptime(entry['published'], YT_FORMAT)
@@ -618,13 +611,15 @@ class YouTube(commands.Cog):
         interval = await self.config.interval()
         self.background_get_new_videos.change_interval(seconds=interval)
 
-    async def get_feed(self, channel: str) -> Union[aiohttp.StreamReader, None]:
+    async def get_feed(self, channel: str) -> Union[aiohttp.ClientResponse, bytes]:
         """Fetch data from a feed."""
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get(f"https://www.youtube.com/feeds/videos.xml?channel_id={channel}") as response:
-                    return response.status, await response.read()
-            except (aiohttp.client_exceptions.ClientConnectorError, aiohttp.client_exceptions.ClientConnectionError):
+                    if response.status == 200:
+                        return await response.read()
+                    return response
+            except (aiohttp.ClientConnectorError, aiohttp.ClientConnectionError):
                 raise ConnectionError
 
     async def get_youtube_channel(self, ctx: commands.Context, channelYouTube: str) -> Union[str, None]:

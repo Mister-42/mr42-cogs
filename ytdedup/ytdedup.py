@@ -125,7 +125,6 @@ class YouTubeDeDup(commands.Cog):
                 await self.process_vid(link, message)
 
     async def process_vid(self, url: str, message: discord.Message) -> None:
-        timestamp = int(datetime.timestamp(message.created_at))
         if vid := self.get_yid(url):
             channel = message.channel
             messages = await self.config.channel(channel).messages()
