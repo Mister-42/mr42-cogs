@@ -1,4 +1,3 @@
-import asyncio
 import contextlib
 import discord
 import logging
@@ -103,14 +102,14 @@ class YouTubeDeDup(commands.Cog):
     @tasks.loop(minutes=30)
     async def background_clean(self) -> None:
         for chan in await self.config.all_channels():
-            channel = self.bot.get_channel(chan)
-            days = await self.config.guild(channel.guild).history()
-            messages = await self.config.channel(channel).messages()
-            messagesOrig = messages.copy()
-            for message in messagesOrig:
-                if messages.get(message).get('time') < int(datetime.timestamp(datetime.now() - timedelta(days=days))):
-                    messages.pop(message)
-            await self.config.channel(channel).messages.set(messages)
+            if channel := self.bot.get_channel(chan):
+                days = await self.config.guild(channel.guild).history()
+                messages = await self.config.channel(channel).messages()
+                messagesOrig = messages.copy()
+                for message in messagesOrig:
+                    if messages.get(message).get('time') < int(datetime.timestamp(datetime.now() - timedelta(days=days))):
+                        messages.pop(message)
+                await self.config.channel(channel).messages.set(messages)
 
     async def red_delete_data_for_user(self, *, requester: RequestType, user_id: int) -> None:
         pass
@@ -130,22 +129,16 @@ class YouTubeDeDup(commands.Cog):
             messages = await self.config.channel(channel).messages()
 
             if channel.permissions_for(message.guild.me).manage_messages and vid in [message for message in messages]:
-                previous = False
-                prevId = messages.get(vid).get('msg')
-                with contextlib.suppress(discord.NotFound):
-                    previous = await channel.fetch_message(prevId)
-                if previous and message.author.bot:
-                    log.info(f"Deleted previous https://youtu.be/{vid} by {previous.author.name} from #{channel.name} ({message.guild})")
-                    await previous.delete()
-                else:
-                    log.info(f"Deleted new https://youtu.be/{vid} by {message.author.name} from #{channel.name} ({message.guild})")
-                    if notify := await self.config.guild(channel.guild).notify():
-                        reply = await message.reply(warning(_("Hello {name}. I have deleted your link, as it was already posted here recently.").format(name=message.author.mention)))
-                    await message.delete()
-                    if notify:
-                        await asyncio.sleep(10)
-                        await reply.delete()
-                    return
+                rmmsg = message
+                if message.author.bot:
+                    with contextlib.suppress(discord.NotFound):
+                        rmmsg = await channel.fetch_message(messages.get(vid).get('msg'))
+
+                await rmmsg.delete()
+                log.info(f"Deleted https://youtu.be/{vid} by {rmmsg.author.name} from #{channel.name} ({rmmsg.guild})")
+                if rmmsg is message and not message.author.bot and await self.config.guild(channel.guild).notify():
+                    msg = await channel.send(warning(_("Hello {name}. I have deleted your link, as it was already posted here recently.").format(name=message.author.mention)))
+                    await msg.delete(delay=10)
 
             newVid = {
                 'msg': message.id,

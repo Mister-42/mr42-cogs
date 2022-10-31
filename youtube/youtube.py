@@ -53,7 +53,7 @@ class YouTube(commands.Cog):
         async with ctx.typing():
             yid = await self.get_youtube_channel(ctx, channelYouTube)
             if not yid:
-                return await ctx.send(error(_("Error getting channel feed. Make sure your input is correct.")))
+                return await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
 
             channel = channelDiscord or ctx.channel
             if dchans := await self.config.custom('subscriptions', yid).discord():
@@ -100,7 +100,7 @@ class YouTube(commands.Cog):
         async with ctx.typing():
             yid = await self.get_youtube_channel(ctx, channelYouTube)
             if not yid:
-                return
+                return await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
 
             updated = []
             if dchans := await self.config.custom('subscriptions', yid).discord():
@@ -238,7 +238,7 @@ class YouTube(commands.Cog):
         async with ctx.typing():
             yid = await self.get_youtube_channel(ctx, channelYouTube)
             if not yid:
-                return
+                return await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
 
             dchan = False
             notNews = []
@@ -269,7 +269,7 @@ class YouTube(commands.Cog):
         async with ctx.typing():
             yid = await self.get_youtube_channel(ctx, channelYouTube)
             if not yid:
-                return
+                return await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
 
             if dchans := await self.config.custom('subscriptions', yid).discord():
                 sub = self.config.custom('subscriptions', yid)
@@ -355,7 +355,7 @@ class YouTube(commands.Cog):
         You can delete such subscriptions with `[p]youtube delete UCXuqSBlHAE6Xw-yeJA0Tunw`."""
         yid = await self.get_youtube_channel(ctx, channelYouTube)
         if not yid:
-            return
+            return await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
 
         channel = self.config.custom('subscriptions', yid)
         name = await channel.name()
@@ -648,13 +648,11 @@ class YouTube(commands.Cog):
         except Exception:
             pass
 
-        await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
-
     async def subscription_discord_options(self, ctx: commands.Context, action: str, channelYouTube: str, data: Optional, channelDiscord: Optional[discord.TextChannel] = None) -> None:
         """Store custom options for Discord channels."""
         yid = await self.get_youtube_channel(ctx, channelYouTube)
         if not yid:
-            return
+            return await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
 
         if data == "":
             data = None
