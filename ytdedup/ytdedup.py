@@ -137,7 +137,8 @@ class YouTubeDeDup(commands.Cog):
                 await rmmsg.delete()
                 log.info(f"Deleted https://youtu.be/{vid} by {rmmsg.author.name} from #{channel.name} ({rmmsg.guild})")
                 if rmmsg is message and not message.author.bot and await self.config.guild(channel.guild).notify():
-                    msg = await channel.send(warning(_("Hello {name}. I have deleted your link, as it was already posted here recently.").format(name=message.author.mention)))
+                    txt = _("Hello {name}. I have deleted your link, as it was already posted here recently.").format(name=message.author.mention)
+                    msg = await channel.send(content=warning(txt))
                     await msg.delete(delay=10)
 
             newVid = {

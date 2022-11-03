@@ -209,7 +209,8 @@ class YouTube(commands.Cog):
         Valid options are: {author}, {title}, {published}, {updated} and {summary}.
 
         You can also remove customization by not specifying any message."""
-        await self.subscription_discord_options(ctx, 'message', channelYouTube, message, channelDiscord)
+        msg = message.replace("\\n", "\n")
+        await self.subscription_discord_options(ctx, 'message', channelYouTube, msg, channelDiscord)
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
