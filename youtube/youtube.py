@@ -697,7 +697,7 @@ class YouTube(commands.Cog):
             msg = _("{action} for {title} removed from {list}.")
             if data:
                 msg = _("{action} for {title} added to {list}.")
-            await ctx.send(success(msg.format(action=actionName, title=feedTitle, list=humanize_list(channels))))
+            await ctx.send(success(msg.format(action=actionName, title=bold(feedTitle), list=humanize_list(channels))))
 
     async def red_delete_data_for_user(self, *, requester: RequestType, user_id: int) -> None:
         pass
