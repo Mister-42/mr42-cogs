@@ -152,12 +152,10 @@ class YouTubeDeDup(commands.Cog):
         query = urlparse(url)
         if query.hostname == 'youtu.be': return query.path[1:]
         if query.hostname in {'www.youtube.com', 'youtube.com', 'music.youtube.com'}:
-            if query.path == '/watch': return parse_qs(query.query)['v'][0]
-            if query.path[:7] == '/watch/': return query.path.split('/')[1]
-            if query.path[:8] == '/shorts/': return query.path.split('/')[2]
-            if query.path[:6] == '/live/': return query.path.split('/')[2]
-            if query.path[:7] == '/embed/': return query.path.split('/')[2]
-            if query.path[:3] == '/v/': return query.path.split('/')[2]
+            if query.path == '/watch':
+                return parse_qs(query.query)['v'][0]
+            elif query.path.startswith(('/watch/', '/shorts/', '/live/', '/embed/', '/v/')):
+                return query.path.split('/')[2]
         return None
 
     def cog_unload(self):
