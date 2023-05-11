@@ -67,6 +67,7 @@ Biggest advantages over `Tube`:
 | `delete`   | Delete a YouTube channel from the configuration |
 | `interval` | Set the interval in seconds at which to check for updates |
 | `migrate`  | Import all subscriptions from the `Tube` cog |
+| `test`     | Send a test message to the current channel |
 
 ### Credits
 

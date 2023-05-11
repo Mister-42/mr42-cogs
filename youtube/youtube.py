@@ -425,6 +425,17 @@ class YouTube(commands.Cog):
         await self.list(ctx)
 
     @checks.is_owner()
+    @youtube.command()
+    async def test(self, ctx: commands.Context) -> None:
+        """Send a test message to the current channel."""
+        ytFeedData = await self.get_feed('UCBR8-60-B28hp2BmDPdntcQ')
+        ytFeed = feedparser.parse(ytFeedData)
+        dchans = {str(ctx.channel.id): {'mention': ctx.guild.id, 'message': f"This is a test message from the YouTube cog, as requested by <@{ctx.author.id}>.\nSorry for pinging @everyone. I don't do this by default for normal new videos, just for this test. Or when explicitly requested."}}
+
+        for entry in ytFeed['entries'][:1][::-1]:
+            await self.send_message(entry, ctx.channel, dchans)
+
+    @checks.is_owner()
     @youtube.command(hidden=True)
     async def migrate(self, ctx: commands.Context) -> None:
         """Import all subscriptions from the `Tube` cog."""
@@ -551,52 +562,7 @@ class YouTube(commands.Cog):
                             log.warning(f"Not allowed to post messages to {channel} ({channel.guild.name})")
                             continue
 
-                        mentions = discord.AllowedMentions()
-                        if role := dchans.get(dchan).get('mention'):
-                            if role == channel.guild.id:
-                                role = channel.guild.default_role
-                                mentions = discord.AllowedMentions(everyone=True)
-                            elif role == "here":
-                                role = "@here"
-                                mentions = discord.AllowedMentions(everyone=True)
-                            else:
-                                role = f"<@&{role}>"
-                                mentions = discord.AllowedMentions(roles=True)
-
-                        if custom := dchans.get(dchan).get('message', ""): # Dpy2 can handle None natively
-                            options = {
-                                'author': entry['author'],
-                                'title': entry['title'],
-                                'published': published,
-                                'updated': updated,
-                                'summary': entry['summary'],
-                            }
-                            custom = custom.format(**options)
-
-                        if channel.permissions_for(channel.guild.me).embed_links:
-                            embed = discord.Embed()
-                            embed.colour = YT_COLOR
-                            embed.title = entry['title']
-                            embed.url = entry['link']
-                            embed.description = custom
-                            embed.set_author(name=entry['author'], url=entry['author_detail']['href'])
-                            embed.set_image(url=f"https://i.ytimg.com/vi/{entry['yt_videoid']}/hqdefault.jpg")
-                            embed.timestamp = updated
-                            icon = discord.File(bundled_data_path(self) / "youtube_social_icon_red.png", filename="youtube.png")
-                            embed.set_footer(text="YouTube", icon_url="attachment://youtube.png")
-                            message = await channel.send(role, file=icon, embed=embed, allowed_mentions=mentions)
-                        else:
-                            description = custom or _("New video from {author}: {title}").format(author=bold(entry['author']), title=bold(entry['title']))
-                            if role:
-                                description = f"{role} {description}"
-                            message = await channel.send(content=f"{description} https://youtu.be/{entry['yt_videoid']}", allowed_mentions=mentions)
-
-                        if dchans.get(dchan).get('publish'):
-                            if channel.is_news():
-                                with contextlib.suppress(discord.HTTPException):
-                                    await message.publish()
-                            else:
-                                log.warning(f"Can't publish, not a news channel: {dchan} ({channel.guild.name})")
+                        await self.send_message(entry, channel, dchans)
 
             if processed != processedOrig:
                 await self.config.custom('subscriptions', yid).updated.set(int(published.timestamp()))
@@ -605,6 +571,55 @@ class YouTube(commands.Cog):
             if not dchans.keys():
                 await self.config.custom('subscriptions', yid).clear()
                 log.warning(f"Removed subscription {yid} ({name}): no subscribed channels left")
+
+    async def send_message(self, entry: feedparser, channel: discord.TextChannel, dchans: dict) -> None:
+        dchan = str(channel.id)
+        if custom := dchans.get(dchan).get('message'):
+            options = {
+                'author': entry['author'],
+                'title': entry['title'],
+                'published': datetime.strptime(entry['published'], YT_FORMAT),
+                'updated': datetime.strptime(entry['updated'], YT_FORMAT),
+                'summary': entry['summary'],
+            }
+            custom = custom.format(**options)
+
+        mentions = discord.AllowedMentions()
+        if role := dchans.get(dchan).get('mention'):
+            if role == channel.guild.id:
+                role = channel.guild.default_role
+                mentions = discord.AllowedMentions(everyone=True)
+            elif role == "here":
+                role = "@here"
+                mentions = discord.AllowedMentions(everyone=True)
+            else:
+                role = f"<@&{role}>"
+                mentions = discord.AllowedMentions(roles=True)
+
+        if channel.permissions_for(channel.guild.me).embed_links:
+            embed = discord.Embed()
+            embed.colour = YT_COLOR
+            embed.title = entry['title']
+            embed.url = entry['link']
+            embed.description = custom
+            embed.set_author(name=entry['author'], url=entry['author_detail']['href'])
+            embed.set_image(url=f"https://i.ytimg.com/vi/{entry['yt_videoid']}/hqdefault.jpg")
+            embed.timestamp = datetime.strptime(entry['updated'], YT_FORMAT)
+            icon = discord.File(bundled_data_path(self) / "youtube_social_icon_red.png", filename="youtube.png")
+            embed.set_footer(text="YouTube", icon_url="attachment://youtube.png")
+            message = await channel.send(role, file=icon, embed=embed, allowed_mentions=mentions)
+        else:
+            description = custom or _("New video from {author}: {title}").format(author=bold(entry['author']), title=bold(entry['title']))
+            if role:
+                description = f"{role} {description}"
+            message = await channel.send(content=f"{description} https://youtu.be/{entry['yt_videoid']}", allowed_mentions=mentions)
+
+        if dchans.get(dchan).get('publish'):
+            if channel.is_news():
+                with contextlib.suppress(discord.HTTPException):
+                    await message.publish()
+            else:
+                log.warning(f"Can't publish, not a news channel: {channel.id} ({channel.guild.name})")
 
     @background_get_new_videos.before_loop
     async def wait_for_red(self) -> NoReturn:
