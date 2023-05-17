@@ -27,14 +27,9 @@ class Avatar(commands.Cog):
             pfp = BytesIO()
 
             fileExt = "png"
-            if discord.version_info.major == 2:
-                await user.display_avatar.save(pfp)
-                if user.avatar.is_animated():
-                    fileExt = "gif"
-            else:
-                await user.avatar_url.save(pfp)
-                if user.is_avatar_animated():
-                    fileExt = "gif"
+            await user.display_avatar.save(pfp)
+            if user.avatar.is_animated():
+                fileExt = "gif"
 
             if user == ctx.author:
                 message = _("Here is your avatar, {name}.").format(name=f"<@{ctx.author.id}>")

@@ -11,7 +11,4 @@ with open(Path(__file__).parent / "info.json") as fp:
 
 
 async def setup(bot: Red) -> None:
-    if discord.version_info.major == 2:
-        await bot.add_cog(YouTubeDeDup(bot))
-    else:
-        bot.add_cog(YouTubeDeDup(bot))
+    await bot.add_cog(YouTubeDeDup(bot))
