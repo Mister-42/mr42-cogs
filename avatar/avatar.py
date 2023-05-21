@@ -28,7 +28,7 @@ class Avatar(commands.Cog):
 
             fileExt = "png"
             await user.display_avatar.save(pfp)
-            if user.avatar.is_animated():
+            if user.avatar and user.avatar.is_animated():
                 fileExt = "gif"
 
             if user == ctx.author:
