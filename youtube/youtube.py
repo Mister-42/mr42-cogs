@@ -57,11 +57,11 @@ class YouTube(commands.Cog):
 
             channel = channelDiscord or ctx.channel
             if dchans := await self.config.custom('subscriptions', yid).discord():
+                feedTitle = await self.config.custom('subscriptions', yid).name()
                 if str(channel.id) in dchans.keys():
-                    return await ctx.send(warning(_("This subscription already exists!")))
+                    return await ctx.send(warning(_("{title} is already being announced in {channel}.").format(title=bold(f"{feedTitle}"), channel=channel.mention)))
                 dchans.update({channel.id: {}})
                 await self.config.custom('subscriptions', yid).discord.set(dchans)
-                feedTitle = await self.config.custom('subscriptions', yid).name()
             else:
                 try:
                     feedData = await self.get_feed(yid)
