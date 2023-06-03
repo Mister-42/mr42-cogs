@@ -85,3 +85,4 @@ Remove duplicate YouTube links in specified channels.
 | `watch`        | Add a channel to be watched                              | `w` |
 | `unwatch`      | Remove a channel from the watchlist                      | `u` |
 | `notify`       | Toggle between informing the sender and complete silence ||
+| `history`      | Set the amount of days history is being kept and checked ||

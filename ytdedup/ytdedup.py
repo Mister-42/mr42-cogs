@@ -71,7 +71,7 @@ class YouTubeDeDup(commands.Cog):
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
-    @youtubededup.command(hidden=True)
+    @youtubededup.command()
     async def history(self, ctx: commands.Context, history: int) -> None:
         """Set the amount of days history is being kept and checked.
 
