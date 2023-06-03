@@ -426,11 +426,17 @@ class YouTube(commands.Cog):
 
     @checks.is_owner()
     @youtube.command()
-    async def test(self, ctx: commands.Context) -> None:
+    async def test(self, ctx: commands.Context, channelYouTube: Optional[str]) -> None:
         """Send a test message to the current channel."""
-        ytFeedData = await self.get_feed('UCBR8-60-B28hp2BmDPdntcQ')
+        yid = 'UCBR8-60-B28hp2BmDPdntcQ'
+        if channelYouTube is not None:
+            yid = await self.get_youtube_channel(ctx, channelYouTube)
+            if not yid:
+                return await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
+
+        ytFeedData = await self.get_feed(yid)
         ytFeed = feedparser.parse(ytFeedData)
-        dchans = {str(ctx.channel.id): {'mention': ctx.guild.id, 'message': f"This is a test message from the YouTube cog, as requested by <@{ctx.author.id}>.\nSorry for pinging @everyone. I don't do this by default for normal new videos, just for this test. Or when explicitly requested."}}
+        dchans = {str(ctx.channel.id): {'mention': ctx.guild.id, 'message': f"This is a test message from the YouTube cog, as requested by <@{ctx.author.id}>.\n**Sorry for pinging @everyone.** I don't do this by default for normal new videos, just for this test. *Or* when explicitly requested."}}
 
         for entry in ytFeed['entries'][:1][::-1]:
             await self.send_message(entry, ctx.channel, dchans)
