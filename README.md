@@ -79,8 +79,8 @@ Remove duplicate YouTube links in specified channels.
 
 ### Commands
 
-| Prefix         | Option                                                   | Alias(es) |
-| :------------- | :------------------------------------------------------- | :-------- |
+| Prefix         | Option                                                   | Alias |
+| :------------- | :------------------------------------------------------- | :---- |
 | `youtubededup` | Call this cog                                            | `ytdd` |
 | `watch`        | Add a channel to be watched                              | `w` |
 | `unwatch`      | Remove a channel from the watchlist                      | `u` |

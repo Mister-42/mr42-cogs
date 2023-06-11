@@ -532,21 +532,60 @@ class YouTube(commands.Cog):
         for yid in await self.config.custom('subscriptions').get_raw():
             sub = self.config.custom('subscriptions', yid)
 
+            now = int(datetime.now().timestamp())
+            errorCount = await sub.errorCount() or 0
+            if errorCount := await sub.errorCount() or 0:
+                lastTry = await sub.lastTry()
+                if errorCount in range(3, 7) and now - lastTry < 900:
+                    continue
+                if errorCount in range(7, 29) and now - lastTry < 3600:
+                    continue
+                if errorCount >= 30 and now - lastTry < 86400:
+                    continue
+
             try:
                 feedData = await self.get_feed(yid)
             except ConnectionError:
                 continue
 
+            dchans = await sub.discord()
             if isinstance(feedData, aiohttp.ClientResponse):
-                log.warning(f"Error {feedData.status} {feedData.reason} for channel {yid} ({await sub.name()})")
+                errorCount += 1
+                await sub.errorCount.set(errorCount)
+                await sub.lastTry.set(now)
+
+                if errorCount >= 30:
+                    for dchan in list(dchans):
+                        channel = self.bot.get_channel(int(dchan))
+                        prefixes = await self.bot.get_valid_prefixes(channel.guild)
+
+                        message = _("Hello {name}").format(name=bold(channel.guild.owner.nick))
+                        message += "\n\n"
+                        message += _("I'm messaging you, as you are the owner of {guild}.").format(guild=bold(channel.guild.name))
+                        message += "\n"
+                        message += _("You have previously subscribed to the YouTube channel {ytName} on your channel {channel}.").format(ytName=bold(await sub.name()), channel=channel.mention)
+                        message += " "
+                        message += _("Unfortunately this channel seems to have been removed from YouTube.")
+                        message += " "
+                        message += _("Please feel free to verify this for yourself on https://www.youtube.com/channel/{yid}.").format(yid=yid)
+                        message += "\n\n"
+                        message += _("To unsubscribe from this channel, please type `{prefix}youtube unsubscribe {yid}` somewhere __in your server__.").format(prefix=prefixes[0], yid=yid)
+                        message += " "
+                        message += _("If you do not take any action and the YouTube channel remains unavailable, I will inform you later again.")
+                        message += "\n\n"
+                        message += _("Have a nice day!")
+                        await channel.guild.owner.send(message)
                 continue
+
+            if errorCount:
+                await sub.errorCount.clear()
+                await sub.lastTry.clear()
 
             feed = feedparser.parse(feedData)
             name = feed['feed']['title']
             if name != await sub.name():
-                await self.config.custom('subscriptions', yid).name.set(name)
+                await sub.name.set(name)
 
-            dchans = await self.config.custom('subscriptions', yid).discord()
             processed = await sub.processed() or []
             processedOrig = processed.copy()
             upd = await sub.updated()
@@ -560,7 +599,7 @@ class YouTube(commands.Cog):
                         channel = self.bot.get_channel(int(dchan))
                         if not channel:
                             dchans.pop(dchan)
-                            await self.config.custom('subscriptions', yid).discord.set(dchans)
+                            await sub.discord.set(dchans)
                             log.warning(f"Removed invalid channel {dchan} for subscription {yid} ({name})")
                             continue
 
@@ -571,11 +610,11 @@ class YouTube(commands.Cog):
                         await self.send_message(entry, channel, dchans)
 
             if processed != processedOrig:
-                await self.config.custom('subscriptions', yid).updated.set(int(published.timestamp()))
-                await self.config.custom('subscriptions', yid).processed.set(processed[:6])
+                await sub.updated.set(int(published.timestamp()))
+                await sub.processed.set(processed[:6])
 
             if not dchans.keys():
-                await self.config.custom('subscriptions', yid).clear()
+                await sub.clear()
                 log.warning(f"Removed subscription {yid} ({name}): no subscribed channels left")
 
     async def send_message(self, entry: feedparser, channel: discord.TextChannel, dchans: dict) -> None:
