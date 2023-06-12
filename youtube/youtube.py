@@ -534,7 +534,7 @@ class YouTube(commands.Cog):
         for yid in await self.config.custom('subscriptions').get_raw():
             sub = self.config.custom('subscriptions', yid)
             dchans = await self.config.custom('subscriptions', yid).discord()
-            if not dchans.keys():
+            if dchans is None:
                 await self.config.custom('subscriptions', yid).clear()
                 log.warning(f"Removed subscription {yid} ({name}): no subscribed channels left")
                 continue
