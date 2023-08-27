@@ -20,29 +20,42 @@ class Avatar(commands.Cog):
 
         Defaults to requester when no argument is supplied.
         """
-        async with ctx.typing():
-            if not user:
-                user = ctx.author
+        if not user:
+            user = ctx.author
 
-            pfp = BytesIO()
+        if isinstance(ctx.channel, discord.channel.DMChannel) or ctx.channel.permissions_for(ctx.guild.me).attach_files:
+            async with ctx.typing():
+                pfp = BytesIO()
 
-            fileExt = "png"
-            await user.display_avatar.save(pfp)
-            if user.avatar and user.avatar.is_animated():
-                fileExt = "gif"
+                fileExt = "png"
+                if isinstance(ctx.channel, discord.channel.DMChannel):
+                    await user.avatar.save(pfp)
+                    if user.avatar and user.avatar.is_animated():
+                        fileExt = "gif"
+                else:
+                    await user.display_avatar.save(pfp)
+                    if user.display_avatar and user.display_avatar.is_animated():
+                        fileExt = "gif"
 
-            if user == ctx.author:
-                message = _("Here is your avatar, {name}.").format(name=f"<@{ctx.author.id}>")
-            elif user == ctx.me:
-                message = _("This is _my_ avatar, {name}!").format(name=f"<@{ctx.author.id}>")
-            elif isinstance(ctx.channel, discord.DMChannel):
-                message = _("You requested the avatar of {name}.").format(name=bold(user.name))
-            else:
-                message = _("{author} requested the avatar of {name}.").format(author=bold(f"<@{ctx.author.id}>"), name=bold(user.name))
+                if user == ctx.author:
+                    message = _("Here is your avatar, {name}.").format(name=ctx.author.mention)
+                elif user == ctx.me:
+                    message = _("This is _my_ avatar, {name}!").format(name=ctx.author.mention)
+                elif isinstance(ctx.channel, discord.DMChannel):
+                    message = _("You requested the avatar of {name}.").format(name=bold(user.name))
+                else:
+                    message = _("{author} requested the avatar of {name}.").format(author=ctx.author.mention, name=bold(user.name))
 
-            pfp.seek(0)
-            filename = f"pfp-{user.id}.{fileExt}"
-            await ctx.send(message, file=discord.File(pfp, filename=filename))
+                pfp.seek(0)
+                filename = f"pfp-{user.id}.{fileExt}"
+            return await ctx.send(message, file=discord.File(pfp, filename=filename))
+
+        elif ctx.channel.permissions_for(ctx.guild.me).embed_links:
+            async with ctx.typing():
+                pfp = user.display_avatar.url
+            return await ctx.send(pfp)
+
+        await ctx.send(_("I do not have permission to attach files or embed links in this channel."))
 
     async def red_delete_data_for_user(self, *, requester: RequestType, user_id: int) -> None:
         pass

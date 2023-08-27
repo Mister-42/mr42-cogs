@@ -4,7 +4,7 @@
     "short": "Subscribe to channels on YouTube.",
     "description": "Posts in a channel every time a new video is added to a YouTube channel.",
     "end_user_data_statement": "This cog does not persistently store any data or metadata about users.",
-    "install_msg": "You've just installed the YouTube cog!\nType `[p]youtube help` to get the list of commands for this cog, and their description.",
+    "install_msg": "You've just installed the YouTube cog!\nType `[p]help youtube` to get the list of commands for this cog, and their description.",
     "author": [
         "Mr. 42"
     ],

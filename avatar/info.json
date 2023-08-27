@@ -4,7 +4,7 @@
     "short": "Get user's avatar.",
     "description": "Returns a user's avatar as attachment.",
     "end_user_data_statement": "This cog does not persistently store any data or metadata about users.",
-    "install_msg": "You've just installed the Avatar cog!\nType `[p]avatar help` to get a description for this cog.",
+    "install_msg": "You've just installed the Avatar cog!\nType `[p]help avatar` to get a description for this cog.",
     "author": [
         "Mr. 42"
     ],

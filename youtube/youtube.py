@@ -536,7 +536,7 @@ class YouTube(commands.Cog):
             dchans = await self.config.custom('subscriptions', yid).discord()
             if dchans is None:
                 await self.config.custom('subscriptions', yid).clear()
-                log.warning(f"Removed subscription {yid} ({name}): no subscribed channels left")
+                log.warning(f"Removed subscription {yid}: no subscribed channels left")
                 continue
 
             now = int(datetime.now().timestamp())

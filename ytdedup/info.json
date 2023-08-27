@@ -4,7 +4,7 @@
     "short": "Remove duplicate YouTube links",
     "description": "Remove duplicate YouTube links in specified channels",
     "end_user_data_statement": "This cog does not persistently store any data or metadata about users.",
-    "install_msg": "You've just installed the YouTube DeDuplicator cog!\nType `[p]youtubededup help` to get the list of commands for this cog, and their description.",
+    "install_msg": "You've just installed the YouTube DeDuplicator cog!\nType `[p]help youtubededup` to get the list of commands for this cog, and their description.",
     "author": [
         "Mr. 42"
     ],
