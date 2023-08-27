@@ -590,7 +590,7 @@ class YouTube(commands.Cog):
                         channel = self.bot.get_channel(int(dchan))
                         prefixes = await self.bot.get_valid_prefixes(channel.guild)
 
-                        message = _("Hello {name}").format(name=bold(channel.guild.owner.nick))
+                        message = _("Hello {name}").format(name=channel.guild.owner.mention)
                         message += "\n\n"
                         message += _("I'm messaging you, as you are the owner of {guild}.").format(guild=bold(channel.guild.name))
                         message += "\n"
