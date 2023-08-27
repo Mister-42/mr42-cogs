@@ -55,7 +55,7 @@ class Avatar(commands.Cog):
                 pfp = user.display_avatar.url
             return await ctx.send(pfp)
 
-        await ctx.send(_("I do not have permission to attach files or embed links in this channel."))
+        await ctx.send(error(_("I do not have permission to attach files or embed links in this channel.")))
 
     async def red_delete_data_for_user(self, *, requester: RequestType, user_id: int) -> None:
         pass

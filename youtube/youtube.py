@@ -181,7 +181,7 @@ class YouTube(commands.Cog):
             channel = self.bot.get_channel(sub)
 
             msg = _("{count} YouTube subscriptions for {channel}") if subCount > 1 else _("1 YouTube subscription for {channel}")
-            text += "\n\n" + msg.format(count=count, channel=f"#{channel.name}")
+            text += "\n\n" + msg.format(count=count, channel=channel.mention)
             richText += "\n\n" + bold(msg.format(count=count, channel=channel.mention))
             if ctx.command.qualified_name == 'youtube listall':
                 text += f" ({channel.guild.name})"
@@ -194,6 +194,8 @@ class YouTube(commands.Cog):
 
         pages = list(pagify(richText.strip()))
         if len(pages) > await self.config.guild(ctx.guild).maxpages():
+            if not ctx.channel.permissions_for(ctx.guild.me).attach_files:
+                return await ctx.send(error("I do not have permission to attach files in this channel."))
             page = text_to_file(text.strip(), "subscriptions.txt")
             return await ctx.send(file=page)
         for page in pages:
@@ -202,7 +204,7 @@ class YouTube(commands.Cog):
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
     @youtube.command(aliases=['c', 'customize'])
-    async def custom(self, ctx: commands.Context, channelYouTube: str, message: str = False, channelDiscord: Optional[discord.TextChannel] = None) -> NoReturn:
+    async def custom(self, ctx: commands.Context, channelYouTube: str, message: str = "", channelDiscord: Optional[discord.TextChannel] = None) -> NoReturn:
         """Add a custom message for new videos from a YouTube channel.
 
         You can use keys in your custom message, surrounded by curly braces.
@@ -269,18 +271,18 @@ class YouTube(commands.Cog):
     @youtube.command()
     async def info(self, ctx: commands.Context, channelYouTube: str) -> None:
         """Provides information about a YouTube subscription."""
-        async with ctx.typing():
-            yid = await self.get_youtube_channel(ctx, channelYouTube)
-            if not yid:
-                return await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
+        yid = await self.get_youtube_channel(ctx, channelYouTube)
+        if not yid:
+            return await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
 
+        info = []
+        async with ctx.typing():
             if dchans := await self.config.custom('subscriptions', yid).discord():
                 sub = self.config.custom('subscriptions', yid)
                 channels = ctx.guild.channels
                 if ctx.command.qualified_name == 'youtube infoall':
                     channels = [self.bot.get_channel(int(channel)) for channel in dchans.keys()]
 
-                info = []
                 for channel in channels:
                     dchan = str(channel.id)
                     if dchan in dchans.keys():
@@ -308,22 +310,39 @@ class YouTube(commands.Cog):
 
                         info.append(part)
 
-                if not info:
-                    return await ctx.send(error(_("Subscription not found.")))
+        if not info:
+            return await ctx.send(error(_("Subscription not found.")))
 
-                if ctx.channel.permissions_for(ctx.guild.me).embed_links:
-                    embed = discord.Embed()
-                    embed.colour = YT_COLOR
-                    embed.title = _("Subscription information for {name}").format(name=await sub.name())
-                    embed.url = f"https://www.youtube.com/channel/{yid}/"
-                    embed.description = "\n\n".join(info)
-                    embed.timestamp = datetime.fromtimestamp(await sub.updated())
-                    icon = discord.File(bundled_data_path(self) / "youtube_social_icon_red.png", filename="youtube.png")
-                    embed.set_footer(text=_("Latest video"), icon_url="attachment://youtube.png")
-                    return await ctx.send(file=icon, embed=embed)
-                msg = _("Subscription information for {name}").format(name=await sub.name())
-                msg += "\n\n" + "\n\n".join(info)
-                await ctx.send(msg)
+        if ctx.channel.permissions_for(ctx.guild.me).embed_links:
+            embeds = []
+            msg = ''
+            for v in info:
+                if len("\n\n") + len(msg) + len("\n") + len(v) <= 4096:
+                    msg = msg + "\n" + v
+                elif info.index(v) == len(info) - 1:
+                    msg = v
+                else:
+                    embeds.append(msg)
+                    msg = v
+            embeds.append(msg)
+
+            for msg in embeds:
+                embed = discord.Embed()
+                embed.colour = YT_COLOR
+                embed.title = _("Subscription information for {name}").format(name=await sub.name())
+                embed.url = f"https://www.youtube.com/channel/{yid}/"
+                embed.description = "\n\n" + msg
+                embed.timestamp = datetime.fromtimestamp(await sub.updated())
+                embed.set_footer(text=_("Latest video"), icon_url="attachment://youtube.png")
+                icon = discord.File(bundled_data_path(self) / "youtube_social_icon_red.png", filename="youtube.png")
+                await ctx.send(file=icon, embed=embed)
+            return
+
+        msg = _("Subscription information for {name}").format(name=await sub.name())
+        msg += "\n\n" + "\n".join(info)
+        pages = list(pagify(msg.strip()))
+        for page in pages:
+            await ctx.send(page)
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
@@ -334,7 +353,7 @@ class YouTube(commands.Cog):
         When the limit is reached, a text file will be sent instead, E.g. in `[p]youtube list`.
 
         Default is a maximum of 2 pages."""
-        maxPages = limit or await self.config.guild(ctx.guild).maxpages()
+        maxPages = abs(limit) or await self.config.guild(ctx.guild).maxpages()
         pages = _("{pages} pages").format(pages=maxPages)
         if maxPages == 1:
             pages = _("1 page")
@@ -350,12 +369,15 @@ class YouTube(commands.Cog):
     async def delete(self, ctx: commands.Context, channelYouTube: str) -> None:
         """Delete a YouTube channel from the configuration.
 
-        This cog does not detect if channels are removed or taken down, as this cannot be done reliably.
+        This cog does not automatically delete channels that are removed or taken down, as this cannot be done reliably.
 
         If you see your logs being filled with entries like the one below, there is a good chance the channel is no longer around.
         `[WARNING] red.mr42-cogs.youtube: Error 404 Not Found for channel UCXuqSBlHAE6Xw-yeJA0Tunw (Linus Tech Tips)`
 
         You can delete such subscriptions with `[p]youtube delete UCXuqSBlHAE6Xw-yeJA0Tunw`."""
+        if not ctx.channel.permissions_for(ctx.guild.me).add_reactions:
+            return await ctx.send(error("I do not have permission to add reactions in this channel."))
+
         yid = await self.get_youtube_channel(ctx, channelYouTube)
         if not yid:
             return await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
@@ -447,6 +469,9 @@ class YouTube(commands.Cog):
     @youtube.command(hidden=True)
     async def migrate(self, ctx: commands.Context) -> None:
         """Import all subscriptions from the `Tube` cog."""
+        if not ctx.channel.permissions_for(ctx.guild.me).add_reactions:
+            return await ctx.send(error("I do not have permission to add reactions in this channel."))
+
         TubeConfig = Config.get_conf(None, 0x547562756c6172, True, cog_name='Tube')
         TubeConfig.register_guild(subscriptions=[])
         channels = 0
@@ -561,7 +586,6 @@ class YouTube(commands.Cog):
                 await self.config.custom('subscriptions', yid).lastTry.set(now)
 
                 if errorCount >= 30:
-                    log.warning(f"Error {feedData.status} {feedData.reason} for channel {yid} ({await sub.name()})")
                     for dchan in list(dchans):
                         channel = self.bot.get_channel(int(dchan))
                         prefixes = await self.bot.get_valid_prefixes(channel.guild)
@@ -581,7 +605,10 @@ class YouTube(commands.Cog):
                         message += _("If you do not take any action and the YouTube channel remains unavailable, I will inform you later again.")
                         message += "\n\n"
                         message += _("Have a nice day!")
-                        await channel.guild.owner.send(message)
+                        try:
+                            await channel.guild.owner.send(message)
+                        except:
+                            log.warning(f"Error {feedData.status} {feedData.reason} for channel {yid} ({await sub.name()})")
                 continue
 
             if errorCount:
@@ -611,7 +638,7 @@ class YouTube(commands.Cog):
                             continue
 
                         if not channel.permissions_for(channel.guild.me).send_messages:
-                            log.warning(f"Not allowed to post messages to {channel} ({channel.guild.name})")
+                            log.warning(f"Not allowed to post messages to #{channel} ({channel.guild.name})")
                             continue
 
                         await self.send_message(entry, channel, dchans)
