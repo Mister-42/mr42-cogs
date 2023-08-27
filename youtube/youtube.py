@@ -181,7 +181,7 @@ class YouTube(commands.Cog):
             channel = self.bot.get_channel(sub)
 
             msg = _("{count} YouTube subscriptions for {channel}") if subCount > 1 else _("1 YouTube subscription for {channel}")
-            text += "\n\n" + msg.format(count=count, channel=channel.mention)
+            text += "\n\n" + msg.format(count=count, channel=f"#{channel.name}")
             richText += "\n\n" + bold(msg.format(count=count, channel=channel.mention))
             if ctx.command.qualified_name == 'youtube listall':
                 text += f" ({channel.guild.name})"
