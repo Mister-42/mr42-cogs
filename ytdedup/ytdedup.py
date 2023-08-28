@@ -120,7 +120,7 @@ class YouTubeDeDup(commands.Cog):
             for embed in embeds:
                 await self.process_vid(embed.url, message)
         elif text := message.content:
-            links = re.findall(r'(https?://\S+)', text)
+            links = re.findall(r'(https?://\S+/\S+[a-zA-Z0-9])', text)
             for link in links:
                 await self.process_vid(link, message)
 
