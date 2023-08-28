@@ -37,7 +37,7 @@ class YouTubeDeDup(commands.Cog):
     @youtubededup.command(aliases=['w'])
     async def watch(self, ctx: commands.Context, channel: discord.TextChannel) -> None:
         """Add a channel to be watched."""
-        if await self.config.channel(channel).messages():
+        if channel.id in await self.config.all_channels():
             return await ctx.send(warning(_("The channel {channel} is already being monitored.").format(channel=channel.mention)))
 
         perm = []
@@ -51,6 +51,7 @@ class YouTubeDeDup(commands.Cog):
         if perm:
             return await ctx.send(error(_("I don't have permission to {perm} in {channel}.").format(perm=humanize_list(perm), channel=channel.mention)))
 
+        await self.config.channel(channel).messages.set({})
         days = await self.config.guild(ctx.guild).history()
         async with ctx.typing():
             async for message in channel.history(after=datetime.now() - timedelta(days=days)):
@@ -62,8 +63,7 @@ class YouTubeDeDup(commands.Cog):
     @youtubededup.command(aliases=['u'])
     async def unwatch(self, ctx: commands.Context, channel: discord.TextChannel) -> None:
         """Remove a channel from the watchlist."""
-        messages = await self.config.channel(channel).messages()
-        if not messages:
+        if channel.id not in await self.config.all_channels():
             return await ctx.send(warning(_("The channel {channel} is not being watched.").format(channel=channel.mention)))
 
         await self.config.channel(channel).clear()
@@ -76,6 +76,7 @@ class YouTubeDeDup(commands.Cog):
         """Set the amount of days history is being kept and checked.
 
         Default is 7 days."""
+        history = abs(history)
         days = f"{history} days"
         if history == 1:
             days = "1 day"
@@ -96,7 +97,7 @@ class YouTubeDeDup(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
-        if await self.config.channel(message.channel).messages():
+        if message.channel.id in await self.config.all_channels():
             await self.process_message(message)
 
     @tasks.loop(minutes=30)

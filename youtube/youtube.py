@@ -361,7 +361,7 @@ class YouTube(commands.Cog):
         if limit is None:
             return await ctx.send(_("I am currently sending a maximum of {limit} before sending a file instead.").format(limit=bold(pages)))
 
-        await self.config.guild(ctx.guild).maxpages.set(limit)
+        await self.config.guild(ctx.guild).maxpages.set(maxPages)
         await ctx.send(success(_("I will now send a file after reaching {limit}.").format(limit=bold(pages))))
 
     @checks.is_owner()
