@@ -286,10 +286,9 @@ class YouTube(commands.Cog):
                 for channel in channels:
                     dchan = str(channel.id)
                     if dchan in dchans.keys():
-                        title = channel.mention
+                        part = channel.mention
                         if ctx.command.qualified_name == 'youtube infoall':
-                            title += f" ({channel.guild})"
-                        part = bold(title)
+                            part += " " + bold(f"({channel.guild})")
 
                         if message := dchans.get(dchan).get('message'):
                             part += "\n" + _("Custom: {message}").format(message=escape(message, formatting=True))
@@ -339,6 +338,7 @@ class YouTube(commands.Cog):
             return
 
         msg = _("Subscription information for {name}").format(name=await sub.name())
+        msg += "\n" + f"<https://www.youtube.com/channel/{yid}/>"
         msg += "\n\n" + "\n".join(info)
         pages = list(pagify(msg.strip()))
         for page in pages:
