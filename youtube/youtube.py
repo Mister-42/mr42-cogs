@@ -317,7 +317,7 @@ class YouTube(commands.Cog):
             msg = ''
             for v in info:
                 if len("\n\n") + len(msg) + len("\n") + len(v) <= 4096:
-                    msg = msg + "\n" + v
+                    msg += "\n" + v
                 elif info.index(v) == len(info) - 1:
                     msg = v
                 else:
@@ -529,10 +529,11 @@ class YouTube(commands.Cog):
                             await self.subscription_discord_options(ctx, 'publish', yid, channel)
                         count += 1
 
+                    msg = _("Imported 1 subscription for {guild}.")
                     if count > 1:
-                        await ctx.send(_("Imported {count} subscriptions for {guild}.").format(count=count, guild=g.name))
-                    else:
-                        await ctx.send(_("Imported 1 subscription for {guild}.").format(guild=g.name))
+                        msg = _("Imported {count} subscriptions for {guild}.")
+                    await ctx.send(msg.format(count=count, guild=g.name))
+
             if 'Tube' in ctx.bot.extensions:
                 prompt = (_("Running the `Tube` cog alongside this cog *will* get spammy. Do you want to unload `Tube`?"))
                 query: discord.Message = await ctx.send(prompt)
@@ -565,7 +566,6 @@ class YouTube(commands.Cog):
                 continue
 
             now = int(datetime.now().timestamp())
-            errorCount = await sub.errorCount() or 0
             if errorCount := await sub.errorCount() or 0:
                 lastTry = await sub.lastTry()
                 if errorCount in range(3, 7) and now - lastTry < 900:
@@ -608,7 +608,7 @@ class YouTube(commands.Cog):
                         try:
                             await channel.guild.owner.send(message)
                         except:
-                            log.warning(f"Error {feedData.status} {feedData.reason} for channel {yid} ({await sub.name()})")
+                            log.warning(f"Error {feedData.status} {feedData.reason} for channel {yid} ({await sub.name()}), {channel.guild.owner.name} could not be notified")
                 continue
 
             if errorCount:
