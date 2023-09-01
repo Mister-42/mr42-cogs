@@ -313,16 +313,19 @@ class YouTube(commands.Cog):
             return await ctx.send(error(_("Subscription not found.")))
 
         if ctx.channel.permissions_for(ctx.guild.me).embed_links:
+            count = 0
             embeds = []
             msg = ''
             for v in info:
-                if len("\n\n") + len(msg) + len("\n") + len(v) <= 4096:
-                    msg += "\n" + v
+                if len("\n\n" + msg + "\n\n" + v) <= 4096 and count < 50:
+                    msg += "\n\n" + v
                 elif info.index(v) == len(info) - 1:
                     msg = v
                 else:
+                    count = 0
                     embeds.append(msg)
                     msg = v
+                count += 1
             embeds.append(msg)
 
             for msg in embeds:
@@ -339,7 +342,7 @@ class YouTube(commands.Cog):
 
         msg = _("Subscription information for {name}").format(name=await sub.name())
         msg += "\n" + f"<https://www.youtube.com/channel/{yid}/>"
-        msg += "\n\n" + "\n".join(info)
+        msg += "\n\n" + "\n\n".join(info)
         pages = list(pagify(msg.strip()))
         for page in pages:
             await ctx.send(page)
@@ -568,11 +571,9 @@ class YouTube(commands.Cog):
             now = int(datetime.now().timestamp())
             if errorCount := await sub.errorCount() or 0:
                 lastTry = await sub.lastTry()
-                if errorCount in range(3, 7) and now - lastTry < 900:
-                    continue
-                if errorCount in range(7, 29) and now - lastTry < 3600:
-                    continue
-                if errorCount >= 30 and now - lastTry < 86400:
+                if errorCount in range(3, 7) and now - lastTry < 900 \
+                    or errorCount in range(7, 29) and now - lastTry < 3600 \
+                    or errorCount >= 30 and now - lastTry < 86400:
                     continue
 
             try:
