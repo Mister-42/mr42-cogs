@@ -46,17 +46,17 @@ Biggest advantages over `Tube`:
 
 ### Guild Commands
 
-| Command      | Description                                           | Alias(es) |
-| :----------- | :---------------------------------------------------- | :-------- |
-| `youtube`    | Call this cog                                         | `yt` |
-| `sub`        | Subscribe a Discord channel to a YouTube channel      | `s`, `subscribe` |
-| `unsub`      | Unsubscribe a Discord channel from a YouTube channel  | `u`, `unsubscribe` |
-| `list`       | List current subscriptions                            ||
-| `custom`     | Add or remove a custom message for new videos         | `c`, `customize` |
-| `mention`    | Add or remove a role @mention in front of the message | `m`, `rolemention` |
-| `publish`    | Toggles publishing new messages                       | `p` |
-| `info`       | Provides information about a YouTube subscription     ||
-| `maxpages`   | Set the limit on amount of pages being sent           ||
+| Command       | Description                                           | Alias(es) |
+| :------------ | :---------------------------------------------------- | :-------- |
+| `youtube`     | Call this cog                                         | `yt` |
+| `subscribe`   | Subscribe a Discord channel to a YouTube channel      | `s`, `sub` |
+| `unsubscribe` | Unsubscribe a Discord channel from a YouTube channel  | `u`, `unsub` |
+| `list`        | List current subscriptions                            ||
+| `custom`      | Add or remove a custom message for new videos         | `c`, `customize` |
+| `mention`     | Add or remove a role @mention in front of the message | `m`, `rolemention` |
+| `publish`     | Toggles publishing new messages                       | `p` |
+| `info`        | Provides information about a YouTube subscription     ||
+| `maxpages`    | Set the limit on amount of pages being sent           ||
 
 ### Bot Owner Commands
 

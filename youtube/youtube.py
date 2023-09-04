@@ -43,8 +43,8 @@ class YouTube(commands.Cog):
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
-    @youtube.command(aliases=['s', 'subscribe'])
-    async def sub(self, ctx: commands.Context, channelYouTube: str, channelDiscord: Optional[discord.TextChannel] = None) -> None:
+    @youtube.command(aliases=['s', 'sub'])
+    async def subscribe(self, ctx: commands.Context, channelYouTube: str, channelDiscord: Optional[discord.TextChannel] = None) -> None:
         """Subscribe a Discord channel to a YouTube channel.
 
         If no discord channel is specified, the current channel will be subscribed.
@@ -52,7 +52,7 @@ class YouTube(commands.Cog):
         Channels can be added by channel ID, channel URL, video URL, or playlist URL."""
         async with ctx.typing():
             if not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
-                return await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
+                return
 
             channel = channelDiscord or ctx.channel
             if dchans := await self.config.custom('subscriptions', yid).discord():
@@ -91,14 +91,14 @@ class YouTube(commands.Cog):
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
-    @youtube.command(aliases=['u', 'unsubscribe'])
-    async def unsub(self, ctx: commands.Context, channelYouTube: str, channelDiscord: Optional[discord.TextChannel] = None) -> None:
+    @youtube.command(aliases=['u', 'unsub'])
+    async def unsubscribe(self, ctx: commands.Context, channelYouTube: str, channelDiscord: Optional[discord.TextChannel] = None) -> None:
         """Unsubscribe a Discord channel from a YouTube channel.
 
         If no Discord channel is specified, the subscription will be removed from all channels"""
         async with ctx.typing():
             if not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
-                return await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
+                return
 
             updated = []
             if dchans := await self.config.custom('subscriptions', yid).discord():
@@ -238,10 +238,10 @@ class YouTube(commands.Cog):
         if 'COMMUNITY' not in ctx.guild.features:
             return await ctx.send(error(_("This feature is only available on Community Servers.")))
 
-        async with ctx.typing():
-            if not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
-                return await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
+        if not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
+            return
 
+        async with ctx.typing():
             dchan = False
             notNews = []
             channels = [channelDiscord] if channelDiscord else ctx.guild.channels
@@ -255,13 +255,13 @@ class YouTube(commands.Cog):
                         publish = not dchans.get(dchan).get('publish')
                         await self.subscription_discord_options(ctx, 'publish', yid, publish, channel)
 
-            if notNews:
-                msg = _("The channels {list} are not Announcement Channels.")
-                if len(notNews) == 1:
-                    msg = _("The channel {list} is not an Announcement Channel.")
-                await ctx.send(warning(msg.format(list=humanize_list(notNews))))
-            elif not dchan:
-                await ctx.send(error(_("Subscription not found.")))
+        if notNews:
+            msg = _("The channels {list} are not Announcement Channels.")
+            if len(notNews) == 1:
+                msg = _("The channel {list} is not an Announcement Channel.")
+            await ctx.send(warning(msg.format(list=humanize_list(notNews))))
+        elif not dchan:
+            await ctx.send(error(_("Subscription not found.")))
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
@@ -269,7 +269,7 @@ class YouTube(commands.Cog):
     async def info(self, ctx: commands.Context, channelYouTube: str) -> None:
         """Provides information about a YouTube subscription."""
         if not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
-            return await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
+            return
 
         info = []
         async with ctx.typing():
@@ -378,7 +378,7 @@ class YouTube(commands.Cog):
             return await ctx.send(error("I do not have permission to add reactions in this channel."))
 
         if not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
-            return await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
+            return
 
         channel = self.config.custom('subscriptions', yid)
         name = await channel.name()
@@ -452,7 +452,7 @@ class YouTube(commands.Cog):
         yid = 'UCBR8-60-B28hp2BmDPdntcQ'
         if channelYouTube is not None:
             if not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
-                return await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
+                return
 
         ytFeedData = await self.get_feed(yid)
         ytFeed = feedparser.parse(ytFeedData)
@@ -479,10 +479,9 @@ class YouTube(commands.Cog):
         if channels == 0:
             return await ctx.send(error(_("No data found to import. Migration has been cancelled.")))
 
-        prompt = (_("You are about to import **{channels} YouTube subscriptions**.").format(channels=channels)
-            + " " + _("Depending on the internet speed of the server, this might take a while.")
-            + "\n" + _("Do you want to continue?")
-        )
+        prompt = _("You are about to import **{channels} YouTube subscriptions**.").format(channels=channels)
+        prompt += " " + _("Depending on the internet speed of the server, this might take a while.")
+        prompt += "\n" + _("Do you want to continue?")
         query: discord.Message = await ctx.send(prompt)
         start_adding_reactions(query, ReactionPredicate.YES_OR_NO_EMOJIS)
         pred = ReactionPredicate.yes_or_no(query, ctx.author)
@@ -508,7 +507,7 @@ class YouTube(commands.Cog):
                 for data in await TubeConfig.guild(guild).subscriptions():
                     yid = data.get('id')
                     channel = self.bot.get_channel(int(data.get('channel').get('id')))
-                    await self.sub(ctx, yid, channel)
+                    await self.subscribe(ctx, yid, channel)
 
                     if message := data.get('custom'):
                         TOKENIZER = re.compile(r'([^\s]+)')
@@ -527,10 +526,11 @@ class YouTube(commands.Cog):
                 msg = _("Imported 1 subscription for {guild}.")
                 if count > 1:
                     msg = _("Imported {count} subscriptions for {guild}.")
-                await ctx.send(msg.format(count=count, guild=g.name))
+                await ctx.send(msg.format(count=count, guild=bold(g.name)))
+        await ctx.send(success(_("Migration completed!")))
 
         if 'Tube' in ctx.bot.extensions:
-            prompt = (_("Running the `Tube` cog alongside this cog *will* get spammy. Do you want to unload `Tube`?"))
+            prompt = _("Running the {tube} cog alongside this cog *will* get spammy. Do you want to unload {tube}?").format(tube=inline("Tube"))
             query: discord.Message = await ctx.send(prompt)
             start_adding_reactions(query, ReactionPredicate.YES_OR_NO_EMOJIS)
             pred = ReactionPredicate.yes_or_no(query, ctx.author)
@@ -548,7 +548,6 @@ class YouTube(commands.Cog):
                 with contextlib.suppress(discord.Forbidden):
                     await query.clear_reactions()
                 ctx.bot.unload_extension('Tube')
-        await ctx.send(success(_("Migration completed!")))
 
     @tasks.loop(minutes=1)
     async def background_get_new_videos(self) -> None:
@@ -734,10 +733,15 @@ class YouTube(commands.Cog):
         except Exception:
             pass
 
+        msg = _("Unable to retrieve channel id from {channel}.").format(channel=bold(channelYouTube))
+        msg += "\n" + _("If you're certain your input is correct, it might be a bug in {pytube}.").format(pytube=inline("pytube"))
+        msg += " " + _("In that case, please visit {url} to file a bug report.").format(url="<https://github.com/pytube/pytube>")
+        await ctx.send(error(msg))
+
     async def subscription_discord_options(self, ctx: commands.Context, action: str, channelYouTube: str, data: Optional[str] = "", channelDiscord: Optional[discord.TextChannel] = None) -> None:
         """Store custom options for Discord channels."""
         if not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
-            return await ctx.send(error(_("Your input {channel} is not valid.").format(channel=bold(channelYouTube))))
+            return
 
         if action == 'message':
             actionName = _("Custom message")
