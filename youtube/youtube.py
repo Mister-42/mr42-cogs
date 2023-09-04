@@ -150,8 +150,8 @@ class YouTube(commands.Cog):
                     d = {'message': '\u1d9c', 'mention': '\u1d50', 'publish': '\u1d56'}
                     sub = self.config.custom('subscriptions', yid)
                     tags = ''.join(v for k, v in d.items() if k in dchans.get(dchan))
-                    if errorCount := await self.config.custom('subscriptions', yid).errorCount():
-                        tags += _("Error count: {counter}").format(counter = errorCount)
+                    if (errorCount := await self.config.custom('subscriptions', yid).errorCount() or 0) > 6:
+                        tags += " :: " + _("{counter} errors").format(counter=errorCount)
                     guildSubs.append({'name': await sub.name(), 'id': yid, 'updated': await sub.updated(), 'discord': channel, 'tags': tags})
             if guildSub:
                 subCountYt += 1
@@ -178,9 +178,9 @@ class YouTube(commands.Cog):
             count = len(sub_ids)
             channel = self.bot.get_channel(sub)
 
-            msg = _("{count} YouTube subscriptions for {channel}") if subCount > 1 else _("1 YouTube subscription for {channel}")
-            text += "\n\n" + msg.format(count=count, channel=f"#{channel.name}")
-            richText += "\n\n" + msg.format(count=count, channel=channel.mention)
+            msg = "\n\n" + _("{count} YouTube subscriptions for {channel}") if subCount > 1 else _("1 YouTube subscription for {channel}")
+            text += msg.format(count=count, channel=f"#{channel.name}")
+            richText += msg.format(count=count, channel=channel.mention)
             if ctx.command.qualified_name == 'youtube listall':
                 text += f" ({channel.guild.name})"
                 richText += f" ({bold(channel.guild.name)})"
@@ -282,12 +282,12 @@ class YouTube(commands.Cog):
                 for channel in channels:
                     dchan = str(channel.id)
                     if dchan in dchans.keys():
-                        part = channel.mention
+                        part = "- " + channel.mention
                         if ctx.command.qualified_name == 'youtube infoall':
                             part += " " + bold(f"({channel.guild})")
 
                         if message := dchans.get(dchan).get('message'):
-                            part += "\n" + _("Custom: {message}").format(message=escape(message, formatting=True))
+                            part += "\n  " + _("Custom: {message}").format(message=escape(message, formatting=True))
 
                         if m := dchans.get(dchan).get('mention'):
                             mention = f"<@&{m}>"
@@ -295,13 +295,13 @@ class YouTube(commands.Cog):
                                 mention = ctx.guild.default_role
                             elif m == "here":
                                 mention = "@here"
-                            part += "\n" + _("Mention: {mention}").format(mention=mention)
+                            part += "\n  " + _("Mention: {mention}").format(mention=mention)
 
                         if dchans.get(dchan).get('publish'):
                             msg = _("Yes")
                             if not channel.is_news():
                                 msg = _("Yes, but not an Announcement Channel")
-                            part += "\n" + _("Publish: {message}").format(message=msg)
+                            part += "\n  " + _("Publish: {message}").format(message=msg)
 
                         info.append(part)
 
@@ -313,15 +313,15 @@ class YouTube(commands.Cog):
             embeds = []
             msg = ''
             for v in info:
-                if len("\n\n" + msg + "\n\n" + v) <= 4096 and count < 50:
-                    msg += "\n\n" + v
+                count += 1
+                if count <= 50 and len("\n\n" + msg + v + "\n") <= 4096:
+                    msg += v + "\n"
                 elif info.index(v) == len(info) - 1:
                     msg = v
                 else:
-                    count = 0
+                    count = 1
                     embeds.append(msg)
-                    msg = v
-                count += 1
+                    msg = v + "\n"
             embeds.append(msg)
 
             for msg in embeds:
