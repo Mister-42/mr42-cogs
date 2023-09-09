@@ -602,6 +602,27 @@ class YouTube(commands.Cog):
                             log.warning(f"Error {feedData.status} {feedData.reason} for channel {yid} ({await sub.name()}), {channel.guild.owner.name} could not be notified")
                 continue
 
+            if errorCount > 30:
+                for dchan in list(dchans):
+                    channel = self.bot.get_channel(int(dchan))
+                    prefixes = await self.bot.get_valid_prefixes(channel.guild)
+
+                    message = _("Hello {name}").format(name=channel.guild.owner.mention)
+                    message += "\n\n"
+                    message += _("I'm messaging you, as you are the owner of {guild}.").format(guild=bold(channel.guild.name))
+                    message += "\n"
+                    message += _("Remember when I said the YouTube channel {ytName} was unavailable at the time? Well, it's back now!").format(ytName=bold(await sub.name()))
+                    message += " "
+                    message += _("This means you can safely ignore my previous messages about this channel.")
+                    message += "\n"
+                    message += _("Please feel free to verify this for yourself on https://www.youtube.com/channel/{yid}.").format(yid=yid)
+                    message += "\n\n"
+                    message += _("Have a nice day!")
+                    try:
+                        await channel.guild.owner.send(message)
+                    except:
+                        pass
+
             if errorCount:
                 await self.config.custom('subscriptions', yid).errorCount.clear()
                 await self.config.custom('subscriptions', yid).lastTry.clear()
