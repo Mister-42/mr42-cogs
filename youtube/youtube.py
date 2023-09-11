@@ -589,7 +589,7 @@ class YouTube(commands.Cog):
                         message += " "
                         message += _("Unfortunately this channel seems to have been removed from YouTube.")
                         message += " "
-                        message += _("Please feel free to verify this for yourself on https://www.youtube.com/channel/{yid}.").format(yid=yid)
+                        message += _("Please feel free to verify this for yourself on {url}.").format(url=f"https://www.youtube.com/channel/{yid}")
                         message += "\n\n"
                         message += _("To unsubscribe from this channel, please type `{prefix}youtube unsubscribe {yid}` somewhere __in your server__.").format(prefix=prefixes[0], yid=yid)
                         message += " "
@@ -615,7 +615,7 @@ class YouTube(commands.Cog):
                     message += " "
                     message += _("This means you can safely ignore my previous messages about this channel.")
                     message += "\n"
-                    message += _("Please feel free to verify this for yourself on https://www.youtube.com/channel/{yid}.").format(yid=yid)
+                    message += _("Please feel free to verify this for yourself on {url}.").format(url=f"https://www.youtube.com/channel/{yid}")
                     message += "\n\n"
                     message += _("Have a nice day!")
                     try:
