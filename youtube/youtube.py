@@ -280,6 +280,9 @@ class YouTube(commands.Cog):
                     channels = [self.bot.get_channel(int(channel)) for channel in dchans.keys()]
 
                 for channel in channels:
+                    if not channel:
+                        continue
+
                     dchan = str(channel.id)
                     if dchan in dchans.keys():
                         part = "- " + channel.mention
