@@ -55,6 +55,7 @@ Biggest advantages over `Tube`:
 | `custom`      | Add or remove a custom message for new videos         | `c`, `customize` |
 | `mention`     | Add or remove a role @mention in front of the message | `m`, `rolemention` |
 | `publish`     | Toggles publishing new messages                       | `p` |
+| `embed`       | Toggles between embedded messages and linking videos  ||
 | `info`        | Provides information about a YouTube subscription     ||
 | `maxpages`    | Set the limit on amount of pages being sent           ||
 

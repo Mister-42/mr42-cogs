@@ -434,7 +434,7 @@ class YouTube(commands.Cog):
         Default is to embed messages, if the bot has the `embed_links` permission"""
         if embed := await self.config.channel(channelDiscord).embed():
             await self.config.channel(channelDiscord).embed.set(False)
-            return await ctx.send(success(_("From now on I will drop links in {channel}.").format(channel=channelDiscord.mention)))
+            return await ctx.send(success(_("From now on I will link to videos in {channel}.").format(channel=channelDiscord.mention)))
 
         await self.config.channel(channelDiscord).embed.clear()
         if not channelDiscord.permissions_for(channelDiscord.guild.me).embed_links:
