@@ -33,6 +33,7 @@ class YouTube(commands.Cog):
         self.config = Config.get_conf(self, identifier=823288853745238067)
         self.config.register_global(interval=300)
         self.config.register_guild(maxpages=2)
+        self.config.register_channel(embed=True)
         self.config.init_custom('subscriptions', 1)
         self.config.register_custom('subscriptions')
         self.background_get_new_videos.start()
@@ -424,6 +425,22 @@ class YouTube(commands.Cog):
         """Provides information about a YouTube subscription across servers."""
         await self.info(ctx, channelYouTube)
 
+    @checks.admin_or_permissions(manage_guild=True)
+    @commands.guild_only()
+    @youtube.command()
+    async def embed(self, ctx: commands.Context, channelDiscord: discord.TextChannel) -> None:
+        """Toggles between embedded messages and linking videos
+
+        Default is to embed messages, if the bot has the `embed_links` permission"""
+        if embed := await self.config.channel(channelDiscord).embed():
+            await self.config.channel(channelDiscord).embed.set(False)
+            return await ctx.send(success(_("From now on I will drop links in {channel}.").format(channel=channelDiscord.mention)))
+
+        await self.config.channel(channelDiscord).embed.clear()
+        if not channelDiscord.permissions_for(channelDiscord.guild.me).embed_links:
+            return await ctx.send(warning(_("Embeds have now been enabled for {channel}, but the `embed_links` permission is also required.").format(channel=channelDiscord.mention)))
+        await ctx.send(success(_("Embeds have now been enabled for {channel}.").format(channel=channelDiscord.mention)))
+
     @checks.is_owner()
     @youtube.command()
     async def interval(self, ctx: commands.Context, interval: Optional[int]) -> None:
@@ -690,7 +707,7 @@ class YouTube(commands.Cog):
                 role = f"<@&{role}>"
                 mentions = discord.AllowedMentions(roles=True)
 
-        if channel.permissions_for(channel.guild.me).embed_links:
+        if channel.permissions_for(channel.guild.me).embed_links and await self.config.channel(channel).embed():
             embed = discord.Embed()
             embed.colour = YT_COLOR
             embed.title = entry['title']
@@ -706,7 +723,7 @@ class YouTube(commands.Cog):
             description = custom or _("New video from {author}: {title}").format(author=bold(entry['author']), title=bold(entry['title']))
             if role:
                 description = f"{role} {description}"
-            message = await channel.send(content=f"{description} https://youtu.be/{entry['yt_videoid']}", allowed_mentions=mentions)
+            message = await channel.send(content=f"{description}\nhttps://youtu.be/{entry['yt_videoid']}", allowed_mentions=mentions)
 
         if dchans.get(dchan).get('publish'):
             if not channel.is_news():
