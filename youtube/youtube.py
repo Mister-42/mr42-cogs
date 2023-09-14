@@ -773,7 +773,7 @@ class YouTube(commands.Cog):
         else:
             return await ctx.send(error(_("Unknown action: {action}").format(action=action)))
 
-        data = data.strip() or None
+        data = str(data).strip() or None
         updated = []
         if sub := await self.config.custom('subscriptions', yid).discord():
             feedTitle = await self.config.custom('subscriptions', yid).name()
