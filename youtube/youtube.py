@@ -211,7 +211,7 @@ class YouTube(commands.Cog):
         Valid options are: {author}, {title}, {published}, {updated} and {summary}.
 
         You can also remove customization by not specifying any message."""
-        msg = message.replace("\\n", "\n")
+        msg = message.replace("\\n", "\n").strip()
         await self.subscription_discord_options(ctx, 'message', channelYouTube, msg, channelDiscord)
 
     @checks.admin_or_permissions(manage_guild=True)
@@ -759,7 +759,7 @@ class YouTube(commands.Cog):
         msg += " " + _("In that case, please visit {url} to file a bug report.").format(url="<https://github.com/pytube/pytube>")
         await ctx.send(error(msg))
 
-    async def subscription_discord_options(self, ctx: commands.Context, action: str, channelYouTube: str, data: Optional[str] = "", channelDiscord: Optional[discord.TextChannel] = None) -> None:
+    async def subscription_discord_options(self, ctx: commands.Context, action: str, channelYouTube: str, data: Optional[str], channelDiscord: Optional[discord.TextChannel] = None) -> None:
         """Store custom options for Discord channels."""
         if not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
             return
@@ -773,7 +773,6 @@ class YouTube(commands.Cog):
         else:
             return await ctx.send(error(_("Unknown action: {action}").format(action=action)))
 
-        data = str(data).strip() or None
         updated = []
         if sub := await self.config.custom('subscriptions', yid).discord():
             feedTitle = await self.config.custom('subscriptions', yid).name()
