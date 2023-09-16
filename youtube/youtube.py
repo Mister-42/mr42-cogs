@@ -286,9 +286,9 @@ class YouTube(commands.Cog):
 
                     dchan = str(channel.id)
                     if dchan in dchans.keys():
-                        part = "- " + channel.mention
+                        part = channel.mention
                         if ctx.command.qualified_name == 'youtube infoall':
-                            part += " " + bold(f"({channel.guild})")
+                            part = "- " + channel.mention
 
                         if message := dchans.get(dchan).get('message'):
                             part += "\n  " + _("Custom: {message}").format(message=escape(message, formatting=True))
@@ -302,10 +302,10 @@ class YouTube(commands.Cog):
                             part += "\n  " + _("Mention: {mention}").format(mention=mention)
 
                         if dchans.get(dchan).get('publish'):
-                            msg = _("Yes")
+                            publish = _("Yes")
                             if not channel.is_news():
-                                msg = _("Yes, but not an Announcement Channel")
-                            part += "\n  " + _("Publish: {message}").format(message=msg)
+                                publish = _("Yes, but not an Announcement Channel")
+                            part += "\n  " + _("Publish: {publish}").format(publish=publish)
 
                         info.append(part)
 
@@ -722,7 +722,7 @@ class YouTube(commands.Cog):
             message = await channel.send(role, file=icon, embed=embed, allowed_mentions=mentions)
         else:
             description = custom or _("New video from {author}: {title}").format(author=bold(entry['author']), title=bold(entry['title']))
-            if role and "{{mention}}" not in dchans.get(dchan).get('message', ""):
+            if role and dchans.get(dchan).get('message', "").find("{mention}") == -1:
                 description = f"{role} {description}"
             message = await channel.send(content=f"{description}\nhttps://youtu.be/{entry['yt_videoid']}", allowed_mentions=mentions)
 
