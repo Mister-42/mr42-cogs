@@ -209,7 +209,7 @@ class YouTube(commands.Cog):
         You can use keys in your custom message, surrounded by curly braces.
         E.g. `[p]youtube customize UCXuqSBlHAE6Xw-yeJA0Tunw "Linus from **{author}** is dropping things again!\\nCheck out their new video {title}" #video-updates`
 
-        Valid options are: {author}, {title}, {published}, {updated} and {summary}.
+        Valid options are: {mention}, {author}, {title}, {published}, {updated} and {summary}.
 
         You can also remove customization by not specifying any message."""
         msg = message.replace("\\n", "\n").strip()
@@ -685,16 +685,6 @@ class YouTube(commands.Cog):
 
     async def send_message(self, entry: feedparser, channel: discord.TextChannel, dchans: dict) -> None:
         dchan = str(channel.id)
-        if custom := dchans.get(dchan).get('message'):
-            options = {
-                'author': entry['author'],
-                'title': entry['title'],
-                'published': datetime.strptime(entry['published'], YT_FORMAT),
-                'updated': datetime.strptime(entry['updated'], YT_FORMAT),
-                'summary': entry['summary'],
-            }
-            custom = custom.format(**options)
-
         mentions = discord.AllowedMentions()
         if role := dchans.get(dchan).get('mention'):
             if role == channel.guild.id:
@@ -706,6 +696,17 @@ class YouTube(commands.Cog):
             else:
                 role = f"<@&{role}>"
                 mentions = discord.AllowedMentions(roles=True)
+
+        if custom := dchans.get(dchan).get('message'):
+            options = {
+                'mention': role or bold(_("mention not set")),
+                'author': entry['author'],
+                'title': entry['title'],
+                'published': datetime.strptime(entry['published'], YT_FORMAT),
+                'updated': datetime.strptime(entry['updated'], YT_FORMAT),
+                'summary': entry['summary']
+            }
+            custom = custom.format(**options)
 
         if channel.permissions_for(channel.guild.me).embed_links and await self.config.channel(channel).embed():
             embed = discord.Embed()
@@ -721,7 +722,7 @@ class YouTube(commands.Cog):
             message = await channel.send(role, file=icon, embed=embed, allowed_mentions=mentions)
         else:
             description = custom or _("New video from {author}: {title}").format(author=bold(entry['author']), title=bold(entry['title']))
-            if role:
+            if role and "{{mention}}" not in dchans.get(dchan).get('message', ""):
                 description = f"{role} {description}"
             message = await channel.send(content=f"{description}\nhttps://youtu.be/{entry['yt_videoid']}", allowed_mentions=mentions)
 
