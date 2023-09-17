@@ -277,8 +277,10 @@ class YouTube(commands.Cog):
             if dchans := await self.config.custom('subscriptions', yid).discord():
                 sub = self.config.custom('subscriptions', yid)
                 channels = ctx.guild.channels
+                spacer = ""
                 if ctx.command.qualified_name == 'youtube infoall':
                     channels = [self.bot.get_channel(int(channel)) for channel in dchans.keys()]
+                    spacer = "  "
 
                 for channel in channels:
                     if not channel:
@@ -291,7 +293,7 @@ class YouTube(commands.Cog):
                             part = "- " + channel.mention
 
                         if message := dchans.get(dchan).get('message'):
-                            part += "\n  " + _("Custom: {message}").format(message=escape(message, formatting=True))
+                            part += f"\n{spacer}- {bold(_('Custom'))}: {escape(message, formatting=True)}"
 
                         if m := dchans.get(dchan).get('mention'):
                             mention = f"<@&{m}>"
@@ -299,13 +301,13 @@ class YouTube(commands.Cog):
                                 mention = ctx.guild.default_role
                             elif m == "here":
                                 mention = "@here"
-                            part += "\n  " + _("Mention: {mention}").format(mention=mention)
+                            part += f"\n{spacer}- {bold(_('Mention'))}: {mention}"
 
                         if dchans.get(dchan).get('publish'):
                             publish = _("Yes")
                             if not channel.is_news():
                                 publish = _("Yes, but not an Announcement Channel")
-                            part += "\n  " + _("Publish: {publish}").format(publish=publish)
+                            part += f"\n{spacer}- {bold(_('Publish'))}: {publish}"
 
                         info.append(part)
 
