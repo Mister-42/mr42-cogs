@@ -608,16 +608,34 @@ class YouTube(commands.Cog):
                 await self.config.custom('subscriptions', yid).errorCount.set(errorCount)
                 await self.config.custom('subscriptions', yid).lastTry.set(now)
 
-                if errorCount >= 30:
+                if errorCount >= 60:
+                    for dchan in dchans:
+                        channel = self.bot.get_channel(int(dchan))
+                        message = _("Hello {owner}").format(owner=channel.guild.owner.mention)
+                        message += "\n\n"
+                        message += _("I'm giving up…")
+                        message += "\n"
+                        message += _("The YouTube channel {ytName} has been gone for a while now.").format(ytName=bold(name))
+                        message += " "
+                        message += _("I'm deleting it from the configuration.")
+                        message += "\n\n"
+                        message += _("Have a nice day!")
+                        try:
+                            await channel.guild.owner.send(message)
+                        except:
+                            pass
+                    await self.config.custom('subscriptions', yid).clear()
+                    log.warning(f"Removed subscription {yid} ({name})")
+                elif errorCount >= 30:
                     for dchan in dchans:
                         channel = self.bot.get_channel(int(dchan))
                         prefixes = await self.bot.get_valid_prefixes(channel.guild)
 
-                        message = _("Hello {name}").format(name=channel.guild.owner.mention)
+                        message = _("Hello {owner}").format(owner=channel.guild.owner.mention)
                         message += "\n\n"
                         message += _("I'm messaging you, as you are the owner of {guild}.").format(guild=bold(channel.guild.name))
                         message += "\n"
-                        message += _("You have previously subscribed to the YouTube channel {ytName} on your channel {channel}.").format(ytName=bold(await sub.name()), channel=channel.mention)
+                        message += _("You have previously subscribed to the YouTube channel {ytName} on your channel {channel}.").format(ytName=bold(name), channel=channel.mention)
                         message += " "
                         message += _("Unfortunately this channel seems to have been removed from YouTube.")
                         message += " "
@@ -631,7 +649,7 @@ class YouTube(commands.Cog):
                         try:
                             await channel.guild.owner.send(message)
                         except:
-                            log.warning(f"Error {feedData.status} {feedData.reason} for channel {yid} ({await sub.name()}), {channel.guild.owner.name} could not be notified")
+                            log.warning(f"Error {feedData.status} {feedData.reason} for channel {yid} ({name}), {channel.guild.owner.name} could not be notified")
                 continue
 
             if errorCount > 30:
@@ -639,11 +657,11 @@ class YouTube(commands.Cog):
                     channel = self.bot.get_channel(int(dchan))
                     prefixes = await self.bot.get_valid_prefixes(channel.guild)
 
-                    message = _("Hello {name}").format(name=channel.guild.owner.mention)
+                    message = _("Hello {owner}").format(owner=channel.guild.owner.mention)
                     message += "\n\n"
                     message += _("I'm messaging you, as you are the owner of {guild}.").format(guild=bold(channel.guild.name))
                     message += "\n"
-                    message += _("Remember when I said the YouTube channel {ytName} was unavailable at the time? Well, it's back now!").format(ytName=bold(await sub.name()))
+                    message += _("Remember when I said the YouTube channel {ytName} was unavailable at the time? Well, it's back now!").format(ytName=bold(name))
                     message += " "
                     message += _("This means you can safely ignore my previous messages about this channel.")
                     message += "\n"
