@@ -1,12 +1,12 @@
 import aiohttp
 import asyncio
-import contextlib
 import discord
 import feedparser
 import logging
 import pytube
 import re
 
+from contextlib import suppress
 from datetime import datetime
 from discord.ext import tasks
 from typing import Literal, NoReturn, Optional, Union
@@ -48,7 +48,7 @@ class YouTube(commands.Cog):
     async def subscribe(self, ctx: commands.Context, channelYouTube: str, channelDiscord: Optional[discord.TextChannel] = None) -> None:
         """Subscribe a Discord channel to a YouTube channel.
 
-        If no discord channel is specified, the current channel will be subscribed.
+        If no Discord channel is specified, the current channel will be subscribed.
 
         Channels can be added by channel ID, channel URL, video URL, or playlist URL."""
         async with ctx.typing():
@@ -96,7 +96,7 @@ class YouTube(commands.Cog):
     async def unsubscribe(self, ctx: commands.Context, channelYouTube: str, channelDiscord: Optional[discord.TextChannel] = None) -> None:
         """Unsubscribe a Discord channel from a YouTube channel.
 
-        If no Discord channel is specified, the subscription will be removed from all channels"""
+        If no Discord channel is specified, the subscription will be removed from all channels."""
         async with ctx.typing():
             if not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
                 return
@@ -342,11 +342,10 @@ class YouTube(commands.Cog):
                 await ctx.send(file=icon, embed=embed)
             return
 
-        msg = _("Subscription information for {name}").format(name=await sub.name())
-        msg += "\n" + f"<https://www.youtube.com/channel/{yid}/>"
-        msg += "\n\n" + "\n\n".join(info)
-        pages = list(pagify(msg.strip()))
-        for page in pages:
+        msg = _("Subscription information for {name}").format(name=await sub.name()) + "\n"
+        msg += f"<https://www.youtube.com/channel/{yid}/>\n\n"
+        msg += "\n\n".join(info)
+        for page in list(pagify(msg.strip())):
             await ctx.send(page)
 
     @checks.admin_or_permissions(manage_guild=True)
@@ -372,14 +371,7 @@ class YouTube(commands.Cog):
     @checks.is_owner()
     @youtube.command()
     async def delete(self, ctx: commands.Context, channelYouTube: str) -> None:
-        """Delete a YouTube channel from the configuration.
-
-        This cog does not automatically delete channels that are removed or taken down, as this cannot be done reliably.
-
-        If you see your logs being filled with entries like the one below, there is a good chance the channel is no longer around.
-        `[WARNING] red.mr42-cogs.youtube: Error 404 Not Found for channel UCXuqSBlHAE6Xw-yeJA0Tunw (Linus Tech Tips)`
-
-        You can delete such subscriptions with `[p]youtube delete UCXuqSBlHAE6Xw-yeJA0Tunw`."""
+        """Delete a YouTube channel from the configuration. This will delete all data associated with this channel."""
         if not ctx.channel.permissions_for(ctx.guild.me).add_reactions:
             return await ctx.send(error("I do not have permission to add reactions in this channel."))
 
@@ -408,15 +400,15 @@ class YouTube(commands.Cog):
         try:
             await ctx.bot.wait_for("reaction_add", check=pred, timeout=30)
         except asyncio.TimeoutError:
-            with contextlib.suppress(discord.NotFound):
+            with suppress(discord.NotFound):
                 await query.delete()
 
         if not pred.result:
-            with contextlib.suppress(discord.NotFound):
+            with suppress(discord.NotFound):
                 await query.delete()
             return await ctx.send(_("{channel} has not been deleted.").format(channel=bold(name)))
         else:
-            with contextlib.suppress(discord.Forbidden):
+            with suppress(discord.Forbidden):
                 await query.clear_reactions()
             await self.config.custom('subscriptions', yid).clear()
             await ctx.send(success(_("{channel} has been removed from the configuration.").format(channel=bold(name))))
@@ -502,8 +494,8 @@ class YouTube(commands.Cog):
             return await ctx.send(error(_("No data found to import. Migration has been cancelled.")))
 
         prompt = _("You are about to import **{channels} YouTube subscriptions**.").format(channels=channels)
-        prompt += " " + _("Depending on the internet speed of the server, this might take a while.")
-        prompt += "\n" + _("Do you want to continue?")
+        prompt += " " + _("Depending on the internet speed of the server, this might take a while.") + "\n"
+        prompt += _("Do you want to continue?")
         query: discord.Message = await ctx.send(prompt)
         start_adding_reactions(query, ReactionPredicate.YES_OR_NO_EMOJIS)
         pred = ReactionPredicate.yes_or_no(query, ctx.author)
@@ -511,15 +503,15 @@ class YouTube(commands.Cog):
         try:
             await ctx.bot.wait_for("reaction_add", check=pred, timeout=30)
         except asyncio.TimeoutError:
-            with contextlib.suppress(discord.NotFound):
+            with suppress(discord.NotFound):
                 await query.delete()
 
         if not pred.result:
-            with contextlib.suppress(discord.NotFound):
+            with suppress(discord.NotFound):
                 await query.delete()
             return await ctx.send(_("Migration has been cancelled."))
 
-        with contextlib.suppress(discord.Forbidden):
+        with suppress(discord.Forbidden):
             await query.clear_reactions()
         await ctx.send(_("Migration started…"))
         async with ctx.typing():
@@ -560,14 +552,14 @@ class YouTube(commands.Cog):
             try:
                 await ctx.bot.wait_for("reaction_add", check=pred, timeout=30)
             except asyncio.TimeoutError:
-                with contextlib.suppress(discord.NotFound):
+                with suppress(discord.NotFound):
                     await query.delete()
 
             if not pred.result:
-                with contextlib.suppress(discord.NotFound):
+                with suppress(discord.NotFound):
                     await query.delete()
             else:
-                with contextlib.suppress(discord.Forbidden):
+                with suppress(discord.Forbidden):
                     await query.clear_reactions()
                 ctx.bot.unload_extension('Tube')
 
@@ -576,18 +568,20 @@ class YouTube(commands.Cog):
         for yid in await self.config.custom('subscriptions').get_raw():
             sub = self.config.custom('subscriptions', yid)
             name = await sub.name()
+            if oldname := await self.config.custom('subscriptions', yid).oldname():
+                name += " / " + oldname
 
             dchans = await self.config.custom('subscriptions', yid).discord()
             for dchan in list(dchans):
                 if not self.bot.get_channel(int(dchan)):
                     dchans.pop(dchan)
                     await self.config.custom('subscriptions', yid).discord.set(dchans)
-                    log.warning(f"Removed invalid channel {dchan} for subscription {yid} ({name})")
+                    log.info(f"Removed invalid channel {dchan} for subscription {yid} ({name})")
                     continue
 
             if not dchans:
                 await self.config.custom('subscriptions', yid).clear()
-                log.warning(f"Removed subscription {yid} ({name}): no subscribed channels left")
+                log.info(f"Removed subscription {yid} ({name}): no subscribed channels left")
                 continue
 
             now = int(datetime.now().timestamp())
@@ -611,44 +605,31 @@ class YouTube(commands.Cog):
                 if errorCount >= 60:
                     for dchan in dchans:
                         channel = self.bot.get_channel(int(dchan))
-                        message = _("Hello {owner}").format(owner=channel.guild.owner.mention)
-                        message += "\n\n"
-                        message += _("I'm giving up…")
-                        message += "\n"
+                        message = _("Hello {owner}").format(owner=channel.guild.owner.mention) + "\n\n"
+                        message += _("I'm giving up…") + "\n"
                         message += _("The YouTube channel {ytName} has been gone for a while now.").format(ytName=bold(name))
-                        message += " "
-                        message += _("I'm deleting it from the configuration.")
-                        message += "\n\n"
+                        message += " " + _("I'm deleting it from the configuration.") + "\n\n"
                         message += _("Have a nice day!")
-                        try:
+                        with suppress(discord.Forbidden, discord.HTTPException):
                             await channel.guild.owner.send(message)
-                        except:
-                            pass
                     await self.config.custom('subscriptions', yid).clear()
-                    log.warning(f"Removed subscription {yid} ({name})")
+                    log.info(f"Removed subscription {yid} ({name})")
                 elif errorCount >= 30:
                     for dchan in dchans:
                         channel = self.bot.get_channel(int(dchan))
                         prefixes = await self.bot.get_valid_prefixes(channel.guild)
 
-                        message = _("Hello {owner}").format(owner=channel.guild.owner.mention)
-                        message += "\n\n"
-                        message += _("I'm messaging you, as you are the owner of {guild}.").format(guild=bold(channel.guild.name))
-                        message += "\n"
+                        message = _("Hello {owner}").format(owner=channel.guild.owner.mention) + "\n\n"
+                        message += _("I'm messaging you, as you are the owner of {guild}.").format(guild=bold(channel.guild.name)) + "\n"
                         message += _("You have previously subscribed to the YouTube channel {ytName} on your channel {channel}.").format(ytName=bold(name), channel=channel.mention)
-                        message += " "
-                        message += _("Unfortunately this channel seems to have been removed from YouTube.")
-                        message += " "
-                        message += _("Please feel free to verify this for yourself on {url}.").format(url=f"https://www.youtube.com/channel/{yid}")
-                        message += "\n\n"
+                        message += " " + _("Unfortunately this channel seems to have been removed from YouTube.")
+                        message += " " + _("Please feel free to verify this for yourself on {url}.").format(url=f"https://www.youtube.com/channel/{yid}") + "\n\n"
                         message += _("To unsubscribe from this channel, please type `{prefix}youtube unsubscribe {yid}` somewhere __in your server__.").format(prefix=prefixes[0], yid=yid)
-                        message += " "
-                        message += _("If you do not take any action and the YouTube channel remains unavailable, I will inform you later again.")
-                        message += "\n\n"
+                        message += " " + _("If you do not take any action and the YouTube channel remains unavailable, I will inform you later again.")+ "\n\n"
                         message += _("Have a nice day!")
                         try:
                             await channel.guild.owner.send(message)
-                        except:
+                        except (discord.Forbidden, discord.HTTPException):
                             log.warning(f"Error {feedData.status} {feedData.reason} for channel {yid} ({name}), {channel.guild.owner.name} could not be notified")
                 continue
 
@@ -657,30 +638,26 @@ class YouTube(commands.Cog):
                     channel = self.bot.get_channel(int(dchan))
                     prefixes = await self.bot.get_valid_prefixes(channel.guild)
 
-                    message = _("Hello {owner}").format(owner=channel.guild.owner.mention)
-                    message += "\n\n"
-                    message += _("I'm messaging you, as you are the owner of {guild}.").format(guild=bold(channel.guild.name))
-                    message += "\n"
+                    message = _("Hello {owner}").format(owner=channel.guild.owner.mention) + "\n\n"
+                    message += _("I'm messaging you, as you are the owner of {guild}.").format(guild=bold(channel.guild.name)) + "\n"
                     message += _("Remember when I said the YouTube channel {ytName} was unavailable at the time? Well, it's back now!").format(ytName=bold(name))
-                    message += " "
-                    message += _("This means you can safely ignore my previous messages about this channel.")
-                    message += "\n"
-                    message += _("Please feel free to verify this for yourself on {url}.").format(url=f"https://www.youtube.com/channel/{yid}")
-                    message += "\n\n"
+                    message += " "+ _("This means you can safely ignore my previous messages about this channel.") + "\n"
+                    message += _("Please feel free to verify this for yourself on {url}.").format(url=f"https://www.youtube.com/channel/{yid}") + "\n\n"
                     message += _("Have a nice day!")
-                    try:
+                    with suppress(discord.Forbidden, discord.HTTPException):
                         await channel.guild.owner.send(message)
-                    except:
-                        pass
 
             if errorCount:
                 await self.config.custom('subscriptions', yid).errorCount.clear()
                 await self.config.custom('subscriptions', yid).lastTry.clear()
 
             feed = feedparser.parse(feedData)
-            name = feed['feed']['title']
-            if name != await sub.name():
-                await self.config.custom('subscriptions', yid).name.set(name)
+            if (name := await sub.name()) != feed['feed']['title']:
+                if not (oldname := await self.config.custom('subscriptions', yid).oldname()):
+                    await self.config.custom('subscriptions', yid).oldname.set(name)
+                elif oldname == feed['feed']['title']:
+                    await self.config.custom('subscriptions', yid).oldname.clear()
+                await self.config.custom('subscriptions', yid).name.set(feed['feed']['title'])
 
             processed = await sub.processed() or []
             processedOrig = processed.copy()
@@ -696,12 +673,11 @@ class YouTube(commands.Cog):
                         if not channel.permissions_for(channel.guild.me).send_messages:
                             log.warning(f"Not allowed to post messages to #{channel} ({channel.guild.name})")
                             continue
-
                         await self.send_message(entry, channel, dchans)
 
             if processed != processedOrig:
-                await self.config.custom('subscriptions', yid).updated.set(int(published.timestamp()))
                 await self.config.custom('subscriptions', yid).processed.set(processed[:6])
+                await self.config.custom('subscriptions', yid).updated.set(int(published.timestamp()))
 
     async def send_message(self, entry: feedparser, channel: discord.TextChannel, dchans: dict) -> None:
         dchan = str(channel.id)
@@ -749,7 +725,7 @@ class YouTube(commands.Cog):
         if dchans.get(dchan).get('publish'):
             if not channel.is_news():
                 return log.warning(f"Can't publish, not a news channel: {channel.id} ({channel.guild.name})")
-            with contextlib.suppress(discord.HTTPException):
+            with suppress(discord.HTTPException):
                 await message.publish()
 
     @background_get_new_videos.before_loop
@@ -778,25 +754,19 @@ class YouTube(commands.Cog):
             url = f"https://www.youtube.com/channel/{match.string}"
 
         # URL is a channel?
-        try:
+        with suppress(Exception):
             return pytube.Channel(url).channel_id
-        except Exception:
-            pass
 
         # URL is a video?
-        try:
+        with suppress(Exception):
             return pytube.YouTube(url).channel_id
-        except Exception:
-            pass
 
         # URL is a playlist?
-        try:
+        with suppress(Exception):
             return pytube.Playlist(url).owner_id
-        except Exception:
-            pass
 
-        msg = _("Unable to retrieve channel id from {channel}.").format(channel=bold(channelYouTube))
-        msg += "\n" + _("If you're certain your input is correct, it might be a bug in {pytube}.").format(pytube=inline("pytube"))
+        msg = _("Unable to retrieve channel id from {channel}.").format(channel=bold(channelYouTube)) + "\n"
+        msg += _("If you're certain your input is correct, it might be a bug in {pytube}.").format(pytube=inline("pytube"))
         msg += " " + _("In that case, please visit {url} to file a bug report.").format(url="<https://github.com/pytube/pytube>")
         await ctx.send(error(msg))
 
