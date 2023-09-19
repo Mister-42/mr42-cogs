@@ -153,7 +153,7 @@ class YouTube(commands.Cog):
                     tags = ''.join(v for k, v in d.items() if k in dchans.get(dchan))
                     if (errorCount := await self.config.custom('subscriptions', yid).errorCount() or 0) > 6:
                         tags += " :: " + _("{counter} errors").format(counter=errorCount)
-                    guildSubs.append({'name': await sub.name(), 'oldname': await sub.oldname(), 'id': yid, 'updated': await sub.updated(), 'discord': channel, 'tags': tags})
+                    guildSubs.append({'name': await sub.name(), 'oldname': dchans.get(dchan).get('oldname'), 'id': yid, 'updated': await sub.updated(), 'discord': channel, 'tags': tags})
             if guildSub:
                 subCountYt += 1
 
@@ -163,7 +163,7 @@ class YouTube(commands.Cog):
         for sub in sorted(guildSubs, key=lambda d: d['updated'], reverse=True):
             name = sub['name']
             if sub['oldname']:
-                name += f" ({sub['oldname']})"
+                name += f" / {sub['oldname']}"
             if sub['tags']:
                 name += f" {sub['tags']}"
             channel = sub['discord'].id
@@ -311,6 +311,9 @@ class YouTube(commands.Cog):
                                 publish = _("Yes, but not an Announcement Channel")
                             part += f"\n{spacer}- {bold(_('Publish'))}: {publish}"
 
+                        if (oldname := dchans.get(dchan).get('oldname')) and oldname != await sub.name():
+                            part += f"\n{spacer}- {bold(_('Subscribed as'))}: {oldname}"
+
                         info.append(part)
 
         if not info:
@@ -336,8 +339,6 @@ class YouTube(commands.Cog):
                 embed = discord.Embed()
                 embed.colour = YT_COLOR
                 embed.title = _("Subscription information for {name}").format(name=await sub.name())
-                if oldname := await sub.oldname():
-                    embed.title += f" / {oldname}"
                 embed.url = f"https://www.youtube.com/channel/{yid}/"
                 embed.description = "\n\n" + msg
                 embed.timestamp = datetime.fromtimestamp(await sub.updated())
@@ -347,8 +348,6 @@ class YouTube(commands.Cog):
             return
 
         msg = _("Subscription information for {name}").format(name=await sub.name()) + "\n"
-        if oldname := await sub.oldname():
-            msn += f" / {oldname}\n"
         msg += f"<https://www.youtube.com/channel/{yid}/>\n\n"
         msg += "\n\n".join(info)
         for page in list(pagify(msg.strip())):
@@ -574,8 +573,6 @@ class YouTube(commands.Cog):
         for yid in await self.config.custom('subscriptions').get_raw():
             sub = self.config.custom('subscriptions', yid)
             name = await sub.name()
-            if oldname := await self.config.custom('subscriptions', yid).oldname():
-                name += " / " + oldname
 
             dchans = await self.config.custom('subscriptions', yid).discord()
             for dchan in list(dchans):
@@ -610,10 +607,14 @@ class YouTube(commands.Cog):
 
                 if errorCount >= 60:
                     for dchan in dchans:
+                        fullName = name
+                        if oldname := dchans.get(dchan).get('oldname'):
+                            fullName += f" / {oldname}"
                         channel = self.bot.get_channel(int(dchan))
+
                         message = _("Hello {owner}").format(owner=channel.guild.owner.mention) + "\n\n"
                         message += _("I'm giving up…") + "\n"
-                        message += _("The YouTube channel {ytName} has been gone for a while now.").format(ytName=bold(name))
+                        message += _("The YouTube channel {ytName} has been gone for a while now.").format(ytName=bold(fullName))
                         message += " " + _("I'm deleting it from the configuration.") + "\n\n"
                         message += _("Have a nice day!")
                         with suppress(discord.Forbidden, discord.HTTPException):
@@ -622,12 +623,15 @@ class YouTube(commands.Cog):
                     log.info(f"Removed subscription {yid} ({name})")
                 elif errorCount >= 30:
                     for dchan in dchans:
+                        fullName = name
+                        if oldname := dchans.get(dchan).get('oldname'):
+                            fullName += f" / {oldname}"
                         channel = self.bot.get_channel(int(dchan))
                         prefixes = await self.bot.get_valid_prefixes(channel.guild)
 
                         message = _("Hello {owner}").format(owner=channel.guild.owner.mention) + "\n\n"
                         message += _("I'm messaging you, as you are the owner of {guild}.").format(guild=bold(channel.guild.name)) + "\n"
-                        message += _("You have previously subscribed to the YouTube channel {ytName} on your channel {channel}.").format(ytName=bold(name), channel=channel.mention)
+                        message += _("You have previously subscribed to the YouTube channel {ytName} on your channel {channel}.").format(ytName=bold(fullName), channel=channel.mention)
                         message += " " + _("Unfortunately this channel seems to have been removed from YouTube.")
                         message += " " + _("Please feel free to verify this for yourself on {url}.").format(url=f"https://www.youtube.com/channel/{yid}") + "\n\n"
                         message += _("To unsubscribe from this channel, please type `{prefix}youtube unsubscribe {yid}` somewhere __in your server__.").format(prefix=prefixes[0], yid=yid)
@@ -641,12 +645,15 @@ class YouTube(commands.Cog):
 
             if errorCount > 30:
                 for dchan in dchans:
+                    fullName = name
+                    if oldname := dchans.get(dchan).get('oldname'):
+                        fullName += f" / {oldname}"
                     channel = self.bot.get_channel(int(dchan))
                     prefixes = await self.bot.get_valid_prefixes(channel.guild)
 
                     message = _("Hello {owner}").format(owner=channel.guild.owner.mention) + "\n\n"
                     message += _("I'm messaging you, as you are the owner of {guild}.").format(guild=bold(channel.guild.name)) + "\n"
-                    message += _("Remember when I said the YouTube channel {ytName} was unavailable at the time? Well, it's back now!").format(ytName=bold(name))
+                    message += _("Remember when I said the YouTube channel {ytName} was unavailable at the time? Well, it's back now!").format(ytName=bold(fullName))
                     message += " "+ _("This means you can safely ignore my previous messages about this channel.") + "\n"
                     message += _("Please feel free to verify this for yourself on {url}.").format(url=f"https://www.youtube.com/channel/{yid}") + "\n\n"
                     message += _("Have a nice day!")
@@ -657,12 +664,18 @@ class YouTube(commands.Cog):
                 await self.config.custom('subscriptions', yid).errorCount.clear()
                 await self.config.custom('subscriptions', yid).lastTry.clear()
 
+            if await self.config.custom('subscriptions', yid).oldname():
+                await self.config.custom('subscriptions', yid).oldname.clear()
+
             feed = feedparser.parse(feedData)
-            if (name := await sub.name()) != feed['feed']['title']:
-                if not (oldname := await self.config.custom('subscriptions', yid).oldname()):
-                    await self.config.custom('subscriptions', yid).oldname.set(name)
-                elif oldname == feed['feed']['title']:
-                    await self.config.custom('subscriptions', yid).oldname.clear()
+            if name != feed['feed']['title']:
+                sub = await self.config.custom('subscriptions', yid).discord()
+                for dchan in dchans:
+                    if not (oldname := sub.get(dchan).get('oldname')):
+                        sub.get(dchan).update({'oldname': name})
+                    elif oldname == feed['feed']['title']:
+                        sub.get(dchan).pop('oldname')
+                await self.config.custom('subscriptions', yid).discord.set(sub)
                 await self.config.custom('subscriptions', yid).name.set(feed['feed']['title'])
 
             processed = await sub.processed() or []
