@@ -153,7 +153,7 @@ class YouTube(commands.Cog):
                     tags = ''.join(v for k, v in d.items() if k in dchans.get(dchan))
                     if (errorCount := await self.config.custom('subscriptions', yid).errorCount() or 0) > 6:
                         tags += " :: " + _("{counter} errors").format(counter=errorCount)
-                    guildSubs.append({'name': await sub.name(), 'id': yid, 'updated': await sub.updated(), 'discord': channel, 'tags': tags})
+                    guildSubs.append({'name': await sub.name(), 'oldname': await sub.oldname(), 'id': yid, 'updated': await sub.updated(), 'discord': channel, 'tags': tags})
             if guildSub:
                 subCountYt += 1
 
@@ -162,6 +162,8 @@ class YouTube(commands.Cog):
 
         for sub in sorted(guildSubs, key=lambda d: d['updated'], reverse=True):
             name = sub['name']
+            if sub['oldname']:
+                name += f" ({sub['oldname']})"
             if sub['tags']:
                 name += f" {sub['tags']}"
             channel = sub['discord'].id
@@ -334,6 +336,8 @@ class YouTube(commands.Cog):
                 embed = discord.Embed()
                 embed.colour = YT_COLOR
                 embed.title = _("Subscription information for {name}").format(name=await sub.name())
+                if oldname := await sub.oldname():
+                    embed.title += f" / {oldname}"
                 embed.url = f"https://www.youtube.com/channel/{yid}/"
                 embed.description = "\n\n" + msg
                 embed.timestamp = datetime.fromtimestamp(await sub.updated())
@@ -343,6 +347,8 @@ class YouTube(commands.Cog):
             return
 
         msg = _("Subscription information for {name}").format(name=await sub.name()) + "\n"
+        if oldname := await sub.oldname():
+            msn += f" / {oldname}\n"
         msg += f"<https://www.youtube.com/channel/{yid}/>\n\n"
         msg += "\n\n".join(info)
         for page in list(pagify(msg.strip())):
@@ -704,7 +710,7 @@ class YouTube(commands.Cog):
             }
             custom = custom.format(**options)
 
-        if channel.permissions_for(channel.guild.me).embed_links and await self.config.channel(channel).embed():
+        if channel.permissions_for(channel.guild.me).embed_links and channel.permissions_for(channel.guild.me).attach_files and await self.config.channel(channel).embed():
             embed = discord.Embed()
             embed.colour = YT_COLOR
             embed.title = entry['title']
