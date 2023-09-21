@@ -49,17 +49,17 @@ Please be aware that the "new" https://www.youtube.com/@channel.name URLs are no
 
 ### Guild Commands
 
-| Command       | Description                                           | Alias(es) |
-| :------------ | :---------------------------------------------------- | :-------- |
-| `youtube`     | Call this cog                                         | `yt` |
-| `subscribe`   | Subscribe a Discord channel to a YouTube channel      | `s`, `sub` |
-| `unsubscribe` | Unsubscribe a Discord channel from a YouTube channel  | `u`, `unsub` |
-| `list`        | List current subscriptions                            ||
-| `custom`      | Add or remove a custom message for new videos         | `c`, `customize` |
-| `mention`     | Add or remove a role @mention in front of the message | `m`, `rolemention` |
-| `embed`       | Toggles between embedded messages and linking videos  ||
-| `info`        | Provides information about a YouTube subscription     ||
-| `maxpages`    | Set the limit on amount of pages being sent           ||
+| Command       | Description                                          | Alias(es) |
+| :------------ | :--------------------------------------------------- | :-------- |
+| `youtube`     | Call this cog                                        | `yt` |
+| `subscribe`   | Subscribe a Discord channel to a YouTube channel     | `s`, `sub` |
+| `unsubscribe` | Unsubscribe a Discord channel from a YouTube channel | `u`, `unsub` |
+| `list`        | List current subscriptions                           ||
+| `custom`      | Add or remove a custom message for new videos        | `c`, `customize` |
+| `mention`     | Add or remove a role @mention                        | `m`, `rolemention` |
+| `embed`       | Toggles between embedded messages and linking videos ||
+| `info`        | Provides information about a YouTube subscription    ||
+| `maxpages`    | Set the limit on amount of pages being sent          ||
 
 ### Guild Commands for [Community Servers](https://support.discord.com/hc/articles/360047132851) only
 | Command   | Description                     | Alias | Information |

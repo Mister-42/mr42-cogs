@@ -218,7 +218,7 @@ class YouTube(commands.Cog):
     @commands.guild_only()
     @youtube.command(aliases=['m', 'rolemention'])
     async def mention(self, ctx: commands.Context, channelYouTube: str, mention: Optional[Union[discord.Role, str]], channelDiscord: Optional[discord.TextChannel] = None) -> NoReturn:
-        """Add a role @mention in front of the message.
+        """Add a role @mention. Mentions will be placed in front of the message, or replacing {mention} in a custom message.
 
         You can also remove the mention by not specifying any role."""
         m = False
@@ -291,6 +291,9 @@ class YouTube(commands.Cog):
                         if ctx.command.qualified_name == 'youtube infoall':
                             part = "- " + channel.mention
 
+                        if oldname := dchans.get(dchan).get('oldname'):
+                            part += f"\n{spacer}- {bold(_('Subscribed as'))}: {oldname}"
+
                         if message := dchans.get(dchan).get('message'):
                             part += f"\n{spacer}- {bold(_('Custom'))}: {escape(message, formatting=True)}"
 
@@ -308,15 +311,12 @@ class YouTube(commands.Cog):
                                 publish = _("Yes, but not an Announcement Channel")
                             part += f"\n{spacer}- {bold(_('Publish'))}: {publish}"
 
-                        if (oldname := dchans.get(dchan).get('oldname')) and oldname != await sub.name():
-                            part += f"\n{spacer}- {bold(_('Subscribed as'))}: {oldname}"
-
                         info.append(part)
 
         if not info:
             return await ctx.send(error(_("Subscription not found.")))
 
-        if ctx.channel.permissions_for(ctx.guild.me).embed_links:
+        if ctx.channel.permissions_for(ctx.guild.me).embed_links and ctx.channel.permissions_for(ctx.guild.me).attach_files:
             count = 0
             embeds = []
             msg = ''
@@ -359,9 +359,7 @@ class YouTube(commands.Cog):
         When the limit is reached, a text file will be sent instead, E.g. in `[p]youtube list`.
 
         Default is a maximum of 2 pages."""
-        maxPages = await self.config.guild(ctx.guild).maxpages()
-        if limit is not None:
-            maxPages = abs(limit)
+        maxPages = abs(limit) if limit is not None else await self.config.guild(ctx.guild).maxpages()
         pages = _("1 page") if maxPages == 1 else _("{pages} pages").format(pages=maxPages)
 
         if limit is None:
@@ -431,8 +429,13 @@ class YouTube(commands.Cog):
             return await ctx.send(success(_("From now on I will link to videos in {channel}.").format(channel=channelDiscord.mention)))
 
         await self.config.channel(channelDiscord).embed.clear()
-        if not channelDiscord.permissions_for(channelDiscord.guild.me).embed_links:
-            return await ctx.send(warning(_("Embeds have now been enabled for {channel}, but the `embed_links` permission is also required.").format(channel=channelDiscord.mention)))
+        permcheck = []
+        for perm in ["attach_files", "embed_links"]:
+            if not getattr(channelDiscord.permissions_for(channelDiscord.guild.me), perm):
+                permcheck.append(inline(perm))
+
+        if permcheck:
+            return await ctx.send(warning(_("Embeds have now been enabled for {channel}, but it requires {permissions} to function.").format(channel=channelDiscord.mention, permissions=humanize_list(permcheck))))
         await ctx.send(success(_("Embeds have now been enabled for {channel}.").format(channel=channelDiscord.mention)))
 
     @checks.is_owner()
@@ -470,7 +473,7 @@ class YouTube(commands.Cog):
 
         ytFeedData = await self.get_feed(yid)
         ytFeed = feedparser.parse(ytFeedData)
-        dchans = {str(ctx.channel.id): {'mention': ctx.guild.id, 'message': f"This is a test message from the YouTube cog, as requested by <@{ctx.author.id}>.\n**Sorry for pinging @everyone.** I don't do this by default for normal new videos, just for this test. *Or* when explicitly requested."}}
+        dchans = {str(ctx.channel.id): {'mention': ctx.guild.id, 'message': f"This is a test message from the YouTube cog, as requested by {ctx.author.mention}.\n**Sorry for pinging @everyone.** I don't do this by default for normal new videos, just for this test. *Or* when explicitly requested."}}
 
         for entry in ytFeed['entries'][:1][::-1]:
             await self.send_message(entry, ctx.channel, dchans)
