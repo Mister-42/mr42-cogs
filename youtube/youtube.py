@@ -359,10 +359,10 @@ class YouTube(commands.Cog):
         When the limit is reached, a text file will be sent instead, E.g. in `[p]youtube list`.
 
         Default is a maximum of 2 pages."""
-        maxPages = abs(limit) or await self.config.guild(ctx.guild).maxpages()
-        pages = _("{pages} pages").format(pages=maxPages)
-        if maxPages == 1:
-            pages = _("1 page")
+        maxPages = await self.config.guild(ctx.guild).maxpages()
+        if limit is not None:
+            maxPages = abs(limit)
+        pages = _("1 page") if maxPages == 1 else _("{pages} pages").format(pages=maxPages)
 
         if limit is None:
             return await ctx.send(_("I am currently sending a maximum of {limit} before sending a file instead.").format(limit=bold(pages)))
@@ -798,23 +798,15 @@ class YouTube(commands.Cog):
 
         updated = []
         if sub := await self.config.custom('subscriptions', yid).discord():
-            feedTitle = await self.config.custom('subscriptions', yid).name()
-            if not channelDiscord:
-                for channel in ctx.guild.channels:
-                    if str(channel.id) in sub.keys():
-                        updated.append(channel.mention)
-                        if data:
-                            obj = getattr(self.config.custom('subscriptions', yid, 'discord', channel.id), action)
-                            await obj.set(data)
-                        elif sub.get(str(channel.id)).get(action):
-                            await self.config.custom('subscriptions', yid, 'discord', channel.id, action).clear()
-            elif str(channelDiscord.id) in sub.keys():
-                updated.append(channelDiscord.mention)
-                if data:
-                    obj = getattr(self.config.custom('subscriptions', yid, 'discord', channelDiscord.id), action)
-                    await obj.set(data)
-                elif sub.get(str(channelDiscord.id)).get(action):
-                    await self.config.custom('subscriptions', yid, 'discord', channelDiscord.id, action).clear()
+            channels = [channelDiscord] if channelDiscord else ctx.guild.channels
+            for channel in channels:
+                if str(channel.id) in sub.keys():
+                    updated.append(channel.mention)
+                    if data:
+                        obj = getattr(self.config.custom('subscriptions', yid, 'discord', channel.id), action)
+                        await obj.set(data)
+                    elif sub.get(str(channel.id)).get(action):
+                        await self.config.custom('subscriptions', yid, 'discord', channel.id, action).clear()
 
         if not updated:
             return await ctx.send(error(_("Subscription not found.")))
@@ -823,6 +815,7 @@ class YouTube(commands.Cog):
             msg = _("{action} for {title} removed from {list}.")
             if data:
                 msg = _("{action} for {title} added to {list}.")
+            feedTitle = await self.config.custom('subscriptions', yid).name()
             await ctx.send(success(msg.format(action=actionName, title=bold(feedTitle), list=humanize_list(updated))))
 
     async def red_delete_data_for_user(self, *, requester: RequestType, user_id: int) -> None:
