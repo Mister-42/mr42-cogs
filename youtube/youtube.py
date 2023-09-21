@@ -211,6 +211,12 @@ class YouTube(commands.Cog):
         Valid options are: {mention}, {author}, {title}, {published}, {updated} and {summary}.
 
         You can also remove customization by not specifying any message."""
+        try:
+            options = {'mention': 1, 'author': 2, 'title': 3, 'published': 4, 'updated': 5, 'summary': 6}
+            message.format(**options)
+        except KeyError as e:
+            key = str(e).replace('\'', '')
+            return await ctx.send(error(_("{key} is not a valid option.").format(key=inline(key))))
         msg = message.replace("\\n", "\n").strip()
         await self.subscription_discord_options(ctx, 'message', channelYouTube, msg, channelDiscord)
 
@@ -473,7 +479,7 @@ class YouTube(commands.Cog):
 
         ytFeedData = await self.get_feed(yid)
         ytFeed = feedparser.parse(ytFeedData)
-        dchans = {str(ctx.channel.id): {'mention': ctx.guild.id, 'message': f"This is a test message from the YouTube cog, as requested by {ctx.author.mention}.\n**Sorry for pinging @everyone.** I don't do this by default for normal new videos, just for this test. *Or* when explicitly requested."}}
+        dchans = {str(ctx.channel.id): {'mention': ctx.guild.id, 'message': f"This is a test message for **{{author}}** from the YouTube cog, as requested by {ctx.author.mention}.\n**Sorry for pinging {{mention}}.** I don't do this by default for normal new videos, just for this test. *Or* when explicitly requested."}}
 
         for entry in ytFeed['entries'][:1][::-1]:
             await self.send_message(entry, ctx.channel, dchans)
