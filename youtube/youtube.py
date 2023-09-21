@@ -390,7 +390,7 @@ class YouTube(commands.Cog):
             dchans.append(dchan.mention)
 
         prompt = (_("You are about to remove {channel} from the configuration.").format(channel=bold(name))
-            + " " + _("It is subsribed to by {channels}.").format(channels=humanize_list(dchans)) + "\n"
+            + " " + _("It is subscribed to by {channels}.").format(channels=humanize_list(dchans)) + "\n"
             + _("Do you want to continue?")
         )
         query: discord.Message = await ctx.send(prompt)
@@ -804,15 +804,15 @@ class YouTube(commands.Cog):
                     if str(channel.id) in sub.keys():
                         updated.append(channel.mention)
                         if data:
-                            sub.get(str(channel.id)).update({action: data})
-                            await self.config.custom('subscriptions', yid).discord.set(sub)
+                            obj = getattr(self.config.custom('subscriptions', yid, 'discord', channel.id), action)
+                            await obj.set(data)
                         elif sub.get(str(channel.id)).get(action):
                             await self.config.custom('subscriptions', yid, 'discord', channel.id, action).clear()
             elif str(channelDiscord.id) in sub.keys():
                 updated.append(channelDiscord.mention)
                 if data:
-                    sub.get(str(channelDiscord.id)).update({action: data})
-                    await self.config.custom('subscriptions', yid).discord.set(sub)
+                    obj = getattr(self.config.custom('subscriptions', yid, 'discord', channelDiscord.id), action)
+                    await obj.set(data)
                 elif sub.get(str(channelDiscord.id)).get(action):
                     await self.config.custom('subscriptions', yid, 'discord', channelDiscord.id, action).clear()
 
