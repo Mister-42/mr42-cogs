@@ -72,7 +72,6 @@ class YouTube(commands.Cog):
                     return await ctx.send(error(_("Error {error} for channel {channel}.").format(error=bold(f"{feedData.status} {feedData.reason}"), channel=bold(yid))))
 
                 feed = feedparser.parse(feedData)
-                feedTitle = feed['feed']['title']
                 try:
                     updated = datetime.strptime(feed['entries'][0]['published'], YT_FORMAT).timestamp()
                 except IndexError:
@@ -80,7 +79,7 @@ class YouTube(commands.Cog):
                     updated = datetime.strptime(feed['feed']['published'], YT_FORMAT).timestamp()
 
                 newChannel = {
-                    'name': feedTitle,
+                    'name': feed['feed']['title'],
                     'updated': int(updated),
                     'processed': [entry['yt_videoid'] for entry in feed['entries'][:6]],
                     'discord': {channel.id: {}}
@@ -88,7 +87,7 @@ class YouTube(commands.Cog):
                 await self.config.custom('subscriptions', yid).set(newChannel)
 
         if ctx.command.qualified_name != 'youtube migrate':
-            await ctx.send(success(_("YouTube channel {title} will now be announced in {channel} when new videos are published.").format(title=bold(feedTitle), channel=channel.mention)))
+            await ctx.send(success(_("YouTube channel {title} will now be announced in {channel} when new videos are published.").format(title=bold(feed['feed']['title']), channel=channel.mention)))
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
@@ -233,6 +232,8 @@ class YouTube(commands.Cog):
             m = mention.id
         elif mention == "@here":
             m = "here"
+        elif mention:
+            return await ctx.send(error(_("You can't set {mention} as mention").format(mention=mention)))
         await self.subscription_discord_options(ctx, 'mention', channelYouTube, m, channelDiscord)
 
     @checks.admin_or_permissions(manage_guild=True)
@@ -376,12 +377,10 @@ class YouTube(commands.Cog):
         await ctx.send(success(_("I will now send a file after reaching {limit}.").format(limit=bold(pages))))
 
     @checks.is_owner()
+    @commands.bot_has_permissions(add_reactions=True)
     @youtube.command()
     async def delete(self, ctx: commands.Context, channelYouTube: str) -> None:
         """Delete a YouTube channel from the configuration. This will delete all data associated with this channel."""
-        if not ctx.channel.permissions_for(ctx.guild.me).add_reactions:
-            return await ctx.send(error("I do not have permission to add reactions in this channel."))
-
         if not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
             return
 
@@ -437,9 +436,8 @@ class YouTube(commands.Cog):
 
         await self.config.channel(channelDiscord).embed.clear()
         permcheck = []
-        for perm in ["attach_files", "embed_links"]:
-            if not getattr(channelDiscord.permissions_for(channelDiscord.guild.me), perm):
-                permcheck.append(inline(perm))
+        for perm in [i for i in ["attach_files", "embed_links"] if not getattr(channelDiscord.permissions_for(channelDiscord.guild.me), i)]:
+            permcheck.append(inline(perm))
 
         if permcheck:
             return await ctx.send(warning(_("Embeds have now been enabled for {channel}, but it requires {permissions} to function.").format(channel=channelDiscord.mention, permissions=humanize_list(permcheck))))
@@ -486,12 +484,10 @@ class YouTube(commands.Cog):
             await self.send_message(entry, ctx.channel, dchans)
 
     @checks.is_owner()
+    @commands.bot_has_permissions(add_reactions=True)
     @youtube.command(hidden=True)
     async def migrate(self, ctx: commands.Context) -> None:
         """Import all subscriptions from the `Tube` cog."""
-        if not ctx.channel.permissions_for(ctx.guild.me).add_reactions:
-            return await ctx.send(error("I do not have permission to add reactions in this channel."))
-
         TubeConfig = Config.get_conf(None, 0x547562756c6172, True, cog_name='Tube')
         TubeConfig.register_guild(subscriptions=[])
         channels = 0
