@@ -17,6 +17,7 @@ from redbot.core.i18n import Translator, cog_i18n
 from redbot.core.utils.chat_formatting import bold, error, escape, humanize_list, humanize_timedelta, inline, pagify, success, text_to_file, warning
 from redbot.core.utils.menus import start_adding_reactions
 from redbot.core.utils.predicates import ReactionPredicate
+from string import Formatter
 
 _ = Translator("YouTube", __file__)
 log = logging.getLogger("red.mr42-cogs.youtube")
@@ -211,12 +212,12 @@ class YouTube(commands.Cog):
         Valid options are: {mention}, {author}, {title}, {published}, {updated} and {summary}.
 
         You can also remove customization by not specifying any message."""
-        try:
-            options = {'mention': 1, 'author': 2, 'title': 3, 'published': 4, 'updated': 5, 'summary': 6}
-            message.format(**options)
-        except KeyError as e:
-            key = str(e).replace('\'', '')
-            return await ctx.send(error(_("{key} is not a valid option.").format(key=inline(key))))
+        options = {'mention', 'author', 'title', 'published', 'updated', 'summary'}
+        fail = []
+        for x in [i[1] for i in Formatter().parse(message) if i[1] is not None and i[1] not in options]:
+            fail.append(inline(x))
+        if fail:
+            return await ctx.send(error(_("You are not allowed to use {key} in the message.").format(key=humanize_list(fail))))
         msg = message.replace("\\n", "\n").strip()
         await self.subscription_discord_options(ctx, 'message', channelYouTube, msg, channelDiscord)
 
@@ -705,7 +706,7 @@ class YouTube(commands.Cog):
         mentions = discord.AllowedMentions()
         if role := dchans.get(dchan).get('mention'):
             if role == channel.guild.id:
-                role = channel.guild.default_role
+                role = channel.guild.default_role.name
                 mentions = discord.AllowedMentions(everyone=True)
             elif role == "here":
                 role = "@here"
