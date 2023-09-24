@@ -594,10 +594,11 @@ class YouTube(commands.Cog):
             try:
                 feedData = await self.get_feed(yid)
             except ConnectionError:
-                if errorCount >= 30 and now - lastTry < 86400:
-                    continue
+                continue
 
             if isinstance(feedData, aiohttp.ClientResponse):
+                if errorCount >= 30 and now - lastTry < 86400:
+                    continue
                 errorCount += 1
                 await self.config.custom('subscriptions', yid).errorCount.set(errorCount)
                 await self.config.custom('subscriptions', yid).lastTry.set(now)
