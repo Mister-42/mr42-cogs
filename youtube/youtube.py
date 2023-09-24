@@ -133,9 +133,9 @@ class YouTube(commands.Cog):
         for yid in await self.config.custom('subscriptions').get_raw():
             dchans = await self.config.custom('subscriptions', yid).discord()
 
-            channels = [channelDiscord] if channelDiscord else ctx.guild.channels
-            if ctx.command.qualified_name == 'youtube listall':
-                channels = [self.bot.get_channel(int(channel)) for channel in dchans.keys()]
+            channels = [self.bot.get_channel(int(channel)) for channel in dchans.keys()]
+            if ctx.command.qualified_name != 'youtube listall':
+                channels = [channelDiscord] if channelDiscord else ctx.guild.channels
 
             guildSub = False
             for channel in channels:
@@ -192,8 +192,8 @@ class YouTube(commands.Cog):
                 richText += f"\n{inline(info)} {escape(data['name'], formatting=True)}"
 
         pages = list(pagify(richText.strip()))
-        if len(pages) > await self.config.guild(ctx.guild).maxpages():
-            if not ctx.channel.permissions_for(ctx.guild.me).attach_files:
+        if isinstance(ctx.channel, discord.DMChannel) or len(pages) > await self.config.guild(ctx.guild).maxpages():
+            if not isinstance(ctx.channel, discord.DMChannel) and not ctx.channel.permissions_for(ctx.guild.me).attach_files:
                 return await ctx.send(error("I do not have permission to attach files in this channel."))
             page = text_to_file(text.strip(), "subscriptions.txt")
             return await ctx.send(file=page)
@@ -239,38 +239,23 @@ class YouTube(commands.Cog):
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
-    @youtube.command(aliases=['p'])
-    async def publish(self, ctx: commands.Context, channelYouTube: str, channelDiscord: Optional[discord.TextChannel] = None) -> None:
-        """ Toggles publishing new messages to a Discord channel.
+    @youtube.command()
+    async def embed(self, ctx: commands.Context, channelDiscord: discord.TextChannel) -> None:
+        """Toggles between embedded messages and linking videos
 
-        This feature is only available on Community Servers."""
-        if 'COMMUNITY' not in ctx.guild.features:
-            return await ctx.send(error(_("This feature is only available on Community Servers.")))
+        Default is to embed messages, if the bot has the `embed_links` permission"""
+        if embed := await self.config.channel(channelDiscord).embed():
+            await self.config.channel(channelDiscord).embed.set(False)
+            return await ctx.send(success(_("From now on I will link to videos in {channel}.").format(channel=channelDiscord.mention)))
 
-        if not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
-            return
+        await self.config.channel(channelDiscord).embed.clear()
+        permcheck = []
+        for perm in [i for i in ["attach_files", "embed_links"] if not getattr(channelDiscord.permissions_for(channelDiscord.guild.me), i)]:
+            permcheck.append(inline(perm))
 
-        async with ctx.typing():
-            dchan = False
-            notNews = []
-            channels = [channelDiscord] if channelDiscord else ctx.guild.channels
-            if dchans := await self.config.custom('subscriptions', yid).discord():
-                for channel in channels:
-                    if str(channel.id) in dchans.keys():
-                        if not channel.is_news():
-                            notNews.append(channel.mention)
-                            continue
-                        dchan = str(channel.id)
-                        publish = not dchans.get(dchan).get('publish')
-                        await self.subscription_discord_options(ctx, 'publish', yid, publish, channel)
-
-        if notNews:
-            msg = _("The channels {list} are not Announcement Channels.")
-            if len(notNews) == 1:
-                msg = _("The channel {list} is not an Announcement Channel.")
-            await ctx.send(warning(msg.format(list=humanize_list(notNews))))
-        elif not dchan:
-            await ctx.send(error(_("Subscription not found.")))
+        if permcheck:
+            return await ctx.send(warning(_("Embeds have now been enabled for {channel}, but it requires {permissions} to function.").format(channel=channelDiscord.mention, permissions=humanize_list(permcheck))))
+        await ctx.send(success(_("Embeds have now been enabled for {channel}.").format(channel=channelDiscord.mention)))
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
@@ -284,11 +269,11 @@ class YouTube(commands.Cog):
         async with ctx.typing():
             if dchans := await self.config.custom('subscriptions', yid).discord():
                 sub = self.config.custom('subscriptions', yid)
-                channels = ctx.guild.channels
-                spacer = ""
-                if ctx.command.qualified_name == 'youtube infoall':
-                    channels = [self.bot.get_channel(int(channel)) for channel in dchans.keys()]
-                    spacer = "  "
+                channels = [self.bot.get_channel(int(channel)) for channel in dchans.keys()]
+                spacer = "  "
+                if ctx.command.qualified_name != 'youtube infoall':
+                    channels = ctx.guild.channels
+                    spacer = ""
 
                 for channel in channels:
                     if not channel:
@@ -325,7 +310,7 @@ class YouTube(commands.Cog):
         if not info:
             return await ctx.send(error(_("Subscription not found.")))
 
-        if ctx.channel.permissions_for(ctx.guild.me).embed_links and ctx.channel.permissions_for(ctx.guild.me).attach_files:
+        if isinstance(ctx.channel, discord.DMChannel) or ctx.channel.permissions_for(ctx.guild.me).embed_links and ctx.channel.permissions_for(ctx.guild.me).attach_files:
             count = 0
             embeds = []
             msg = ''
@@ -377,6 +362,53 @@ class YouTube(commands.Cog):
         await self.config.guild(ctx.guild).maxpages.set(maxPages)
         await ctx.send(success(_("I will now send a file after reaching {limit}.").format(limit=bold(pages))))
 
+    @checks.admin_or_permissions(manage_guild=True)
+    @commands.guild_only()
+    @youtube.command(aliases=['p'])
+    async def publish(self, ctx: commands.Context, channelYouTube: str, channelDiscord: Optional[discord.TextChannel] = None) -> None:
+        """ Toggles publishing new messages to a Discord channel.
+
+        This feature is only available on Community Servers."""
+        if 'COMMUNITY' not in ctx.guild.features:
+            return await ctx.send(error(_("This feature is only available on Community Servers.")))
+
+        if not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
+            return
+
+        async with ctx.typing():
+            dchan = False
+            notNews = []
+            channels = [channelDiscord] if channelDiscord else ctx.guild.channels
+            if dchans := await self.config.custom('subscriptions', yid).discord():
+                for channel in channels:
+                    if str(channel.id) in dchans.keys():
+                        if not channel.is_news():
+                            notNews.append(channel.mention)
+                            continue
+                        dchan = str(channel.id)
+                        publish = not dchans.get(dchan).get('publish')
+                        await self.subscription_discord_options(ctx, 'publish', yid, publish, channel)
+
+        if notNews:
+            msg = _("The channels {list} are not Announcement Channels.")
+            if len(notNews) == 1:
+                msg = _("The channel {list} is not an Announcement Channel.")
+            await ctx.send(warning(msg.format(list=humanize_list(notNews))))
+        elif not dchan:
+            await ctx.send(error(_("Subscription not found.")))
+
+    @checks.is_owner()
+    @youtube.command()
+    async def infoall(self, ctx: commands.Context, channelYouTube: str) -> None:
+        """Provides information about a YouTube subscription across servers."""
+        await self.info(ctx, channelYouTube)
+
+    @checks.is_owner()
+    @youtube.command()
+    async def listall(self, ctx: commands.Context) -> None:
+        """List current subscriptions across servers."""
+        await self.list(ctx)
+
     @checks.is_owner()
     @commands.bot_has_permissions(add_reactions=True)
     @youtube.command()
@@ -420,32 +452,6 @@ class YouTube(commands.Cog):
 
     @checks.is_owner()
     @youtube.command()
-    async def infoall(self, ctx: commands.Context, channelYouTube: str) -> None:
-        """Provides information about a YouTube subscription across servers."""
-        await self.info(ctx, channelYouTube)
-
-    @checks.admin_or_permissions(manage_guild=True)
-    @commands.guild_only()
-    @youtube.command()
-    async def embed(self, ctx: commands.Context, channelDiscord: discord.TextChannel) -> None:
-        """Toggles between embedded messages and linking videos
-
-        Default is to embed messages, if the bot has the `embed_links` permission"""
-        if embed := await self.config.channel(channelDiscord).embed():
-            await self.config.channel(channelDiscord).embed.set(False)
-            return await ctx.send(success(_("From now on I will link to videos in {channel}.").format(channel=channelDiscord.mention)))
-
-        await self.config.channel(channelDiscord).embed.clear()
-        permcheck = []
-        for perm in [i for i in ["attach_files", "embed_links"] if not getattr(channelDiscord.permissions_for(channelDiscord.guild.me), i)]:
-            permcheck.append(inline(perm))
-
-        if permcheck:
-            return await ctx.send(warning(_("Embeds have now been enabled for {channel}, but it requires {permissions} to function.").format(channel=channelDiscord.mention, permissions=humanize_list(permcheck))))
-        await ctx.send(success(_("Embeds have now been enabled for {channel}.").format(channel=channelDiscord.mention)))
-
-    @checks.is_owner()
-    @youtube.command()
     async def interval(self, ctx: commands.Context, interval: Optional[int]) -> None:
         """Set the interval in seconds at which to check for updates.
 
@@ -461,27 +467,6 @@ class YouTube(commands.Cog):
         await self.config.interval.set(interval)
         self.background_get_new_videos.change_interval(seconds=interval)
         await ctx.send(success(_("I will now check every {time} for new videos.").format(time=humanize_timedelta(seconds=interval))))
-
-    @checks.is_owner()
-    @youtube.command()
-    async def listall(self, ctx: commands.Context) -> None:
-        """List current subscriptions across servers."""
-        await self.list(ctx)
-
-    @checks.is_owner()
-    @youtube.command()
-    async def test(self, ctx: commands.Context, channelYouTube: Optional[str]) -> None:
-        """Send a test message to the current channel."""
-        yid = 'UCBR8-60-B28hp2BmDPdntcQ'
-        if channelYouTube and not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
-            return
-
-        ytFeedData = await self.get_feed(yid)
-        ytFeed = feedparser.parse(ytFeedData)
-        dchans = {str(ctx.channel.id): {'mention': ctx.guild.id, 'message': f"This is a test message for **{{author}}** from the YouTube cog, as requested by {ctx.author.mention}.\n**Sorry for pinging {{mention}}.** I don't do this by default for normal new videos, just for this test. *Or* when explicitly requested."}}
-
-        for entry in ytFeed['entries'][:1][::-1]:
-            await self.send_message(entry, ctx.channel, dchans)
 
     @checks.is_owner()
     @commands.bot_has_permissions(add_reactions=True)
@@ -568,6 +553,22 @@ class YouTube(commands.Cog):
                 with suppress(discord.Forbidden):
                     await query.clear_reactions()
                 ctx.bot.unload_extension('Tube')
+
+    @checks.is_owner()
+    @commands.guild_only()
+    @youtube.command()
+    async def test(self, ctx: commands.Context, channelYouTube: Optional[str]) -> None:
+        """Send a test message to the current channel."""
+        yid = 'UCBR8-60-B28hp2BmDPdntcQ'
+        if channelYouTube and not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
+            return
+
+        ytFeedData = await self.get_feed(yid)
+        ytFeed = feedparser.parse(ytFeedData)
+        dchans = {str(ctx.channel.id): {'mention': ctx.guild.id, 'message': f"This is a test message for **{{author}}** from the YouTube cog, as requested by {ctx.author.mention}.\n**Sorry for pinging {{mention}}.** I don't do this by default for normal new videos, just for this test. *Or* when explicitly requested."}}
+
+        for entry in ytFeed['entries'][:1][::-1]:
+            await self.send_message(entry, ctx.channel, dchans)
 
     @tasks.loop(minutes=1)
     async def background_get_new_videos(self) -> None:
