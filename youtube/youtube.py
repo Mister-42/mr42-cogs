@@ -72,6 +72,7 @@ class YouTube(commands.Cog):
                     return await ctx.send(error(_("Error {error} for channel {channel}.").format(error=bold(f"{feedData.status} {feedData.reason}"), channel=bold(yid))))
 
                 feed = feedparser.parse(feedData)
+                feedTitle = feed['feed']['title']
                 try:
                     updated = datetime.strptime(feed['entries'][0]['published'], YT_FORMAT).timestamp()
                 except IndexError:
@@ -79,7 +80,7 @@ class YouTube(commands.Cog):
                     updated = datetime.strptime(feed['feed']['published'], YT_FORMAT).timestamp()
 
                 newChannel = {
-                    'name': feed['feed']['title'],
+                    'name': feedTitle,
                     'updated': int(updated),
                     'processed': [entry['yt_videoid'] for entry in feed['entries'][:6]],
                     'discord': {channel.id: {}}
@@ -87,7 +88,7 @@ class YouTube(commands.Cog):
                 await self.config.custom('subscriptions', yid).set(newChannel)
 
         if ctx.command.qualified_name != 'youtube migrate':
-            await ctx.send(success(_("YouTube channel {title} will now be announced in {channel} when new videos are published.").format(title=bold(feed['feed']['title']), channel=channel.mention)))
+            await ctx.send(success(_("YouTube channel {title} will now be announced in {channel} when new videos are published.").format(title=bold(feedTitle), channel=channel.mention)))
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.guild_only()
