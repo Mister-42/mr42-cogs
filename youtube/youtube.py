@@ -587,8 +587,8 @@ class YouTube(commands.Cog):
             now = int(datetime.now().timestamp())
             if errorCount := await self.config.custom('subscriptions', yid).errorCount() or 0:
                 lastTry = await self.config.custom('subscriptions', yid).lastTry()
-                if errorCount in range(3, 7) and now - lastTry < 900 \
-                    or errorCount >= 7 and now - lastTry < 3600:
+                if errorCount in range(3, 9) and now - lastTry < 900 \
+                    or errorCount >= 9 and now - lastTry < 3600:
                     continue
 
             try:
@@ -597,14 +597,13 @@ class YouTube(commands.Cog):
                 continue
 
             if isinstance(feedData, aiohttp.ClientResponse):
-                if errorCount >= 30 and now - lastTry < 86400:
+                if errorCount >= 14 and now - lastTry < 86400:
                     continue
                 errorCount += 1
-                await self.config.custom('subscriptions', yid).errorCount.set(errorCount)
                 await self.config.custom('subscriptions', yid).lastTry.set(now)
+                await self.config.custom('subscriptions', yid).errorCount.set(errorCount)
 
-                deletion = 60 - errorCount
-                if errorCount >= 60:
+                if errorCount >= 42:
                     for dchan in dchans:
                         fullName = name
                         if oldname := dchans.get(dchan).get('oldname'):
@@ -620,7 +619,7 @@ class YouTube(commands.Cog):
                             await channel.guild.owner.send(message)
                     await self.config.custom('subscriptions', yid).clear()
                     log.info(f"Removed subscription {yid} ({name})")
-                elif errorCount >= 30 and deletion%7 == 0 or deletion == 1:
+                elif errorCount >= 14 and errorCount%7 == 0 or errorCount == 41:
                     for dchan in dchans:
                         fullName = name
                         if oldname := dchans.get(dchan).get('oldname'):
@@ -634,7 +633,7 @@ class YouTube(commands.Cog):
                         message += " " + _("Unfortunately this channel seems to have been removed from YouTube.")
                         message += " " + _("Please feel free to verify this for yourself on {url}.").format(url=f"https://www.youtube.com/channel/{yid}") + "\n\n"
                         message += _("To unsubscribe from this channel, please type `{prefix}youtube unsubscribe {yid}` somewhere __in your server__.").format(prefix=prefixes[0], yid=yid)
-                        deletionDays = _("1 day") if deletion == 1 else _("{days} days").format(days=deletion)
+                        deletionDays = _("1 day") if errorCount == 41 else _("{days} days").format(days=42 - errorCount)
                         message += " " + _("It will be automatically removed from the configuration in {days}.").format(days=bold(deletionDays))
                         message += " " + _("If you do not take any action, I will inform you later again.") + "\n\n"
                         message += _("Have a nice day!")
