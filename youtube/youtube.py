@@ -472,9 +472,8 @@ class YouTube(commands.Cog):
     async def test(self, ctx: commands.Context, channelYouTube: Optional[str]) -> None:
         """Send a test message to the current channel."""
         yid = 'UCBR8-60-B28hp2BmDPdntcQ'
-        if channelYouTube is not None:
-            if not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
-                return
+        if channelYouTube and not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
+            return
 
         ytFeedData = await self.get_feed(yid)
         ytFeed = feedparser.parse(ytFeedData)
@@ -589,20 +588,21 @@ class YouTube(commands.Cog):
             if errorCount := await self.config.custom('subscriptions', yid).errorCount() or 0:
                 lastTry = await self.config.custom('subscriptions', yid).lastTry()
                 if errorCount in range(3, 7) and now - lastTry < 900 \
-                    or errorCount in range(7, 29) and now - lastTry < 3600 \
-                    or errorCount >= 30 and now - lastTry < 86400:
+                    or errorCount >= 7 and now - lastTry < 3600:
                     continue
 
             try:
                 feedData = await self.get_feed(yid)
             except ConnectionError:
-                continue
+                if errorCount >= 30 and now - lastTry < 86400:
+                    continue
 
             if isinstance(feedData, aiohttp.ClientResponse):
                 errorCount += 1
                 await self.config.custom('subscriptions', yid).errorCount.set(errorCount)
                 await self.config.custom('subscriptions', yid).lastTry.set(now)
 
+                deletion = 60 - errorCount
                 if errorCount >= 60:
                     for dchan in dchans:
                         fullName = name
@@ -619,7 +619,7 @@ class YouTube(commands.Cog):
                             await channel.guild.owner.send(message)
                     await self.config.custom('subscriptions', yid).clear()
                     log.info(f"Removed subscription {yid} ({name})")
-                elif errorCount >= 30:
+                elif errorCount >= 30 and deletion%7 == 0 or deletion == 1:
                     for dchan in dchans:
                         fullName = name
                         if oldname := dchans.get(dchan).get('oldname'):
@@ -633,7 +633,6 @@ class YouTube(commands.Cog):
                         message += " " + _("Unfortunately this channel seems to have been removed from YouTube.")
                         message += " " + _("Please feel free to verify this for yourself on {url}.").format(url=f"https://www.youtube.com/channel/{yid}") + "\n\n"
                         message += _("To unsubscribe from this channel, please type `{prefix}youtube unsubscribe {yid}` somewhere __in your server__.").format(prefix=prefixes[0], yid=yid)
-                        deletion = 60 - errorCount
                         deletionDays = _("1 day") if deletion == 1 else _("{days} days").format(days=deletion)
                         message += " " + _("It will be automatically removed from the configuration in {days}.").format(days=bold(deletionDays))
                         message += " " + _("If you do not take any action, I will inform you later again.") + "\n\n"
