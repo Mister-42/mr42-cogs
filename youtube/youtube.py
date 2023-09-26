@@ -15,8 +15,7 @@ from redbot.core.bot import Red
 from redbot.core.data_manager import bundled_data_path
 from redbot.core.i18n import Translator, cog_i18n
 from redbot.core.utils.chat_formatting import bold, error, escape, humanize_list, humanize_timedelta, inline, pagify, success, text_to_file, warning
-from redbot.core.utils.menus import start_adding_reactions
-from redbot.core.utils.predicates import ReactionPredicate
+from redbot.core.utils.views import ConfirmView
 from string import Formatter
 
 _ = Translator("YouTube", __file__)
@@ -398,6 +397,22 @@ class YouTube(commands.Cog):
 			await ctx.send(error(_("Subscription not found.")))
 
 	@checks.is_owner()
+	@commands.guild_only()
+	@youtube.command(aliases=['test'])
+	async def demo(self, ctx: commands.Context, channelYouTube: Optional[str]) -> None:
+		"""Send a demo message to the current channel."""
+		yid = 'UCBR8-60-B28hp2BmDPdntcQ'
+		if channelYouTube and not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
+			return
+
+		ytFeedData = await self.get_feed(yid)
+		ytFeed = feedparser.parse(ytFeedData)
+		dchans = {str(ctx.channel.id): {'mention': ctx.guild.id, 'message': f"This is a test message for **{{author}}** from the YouTube cog, as requested by {ctx.author.mention}.\n**Sorry for pinging {{mention}}.** I don't do this by default for normal new videos, just for this test. *Or* when explicitly requested."}}
+
+		for entry in ytFeed['entries'][:1][::-1]:
+			await self.send_message(entry, ctx.channel, dchans)
+
+	@checks.is_owner()
 	@youtube.command()
 	async def infoall(self, ctx: commands.Context, channelYouTube: str) -> None:
 		"""Provides information about a YouTube subscription across servers."""
@@ -410,7 +425,6 @@ class YouTube(commands.Cog):
 		await self.list(ctx)
 
 	@checks.is_owner()
-	@commands.bot_has_permissions(add_reactions=True)
 	@youtube.command()
 	async def delete(self, ctx: commands.Context, channelYouTube: str) -> None:
 		"""Delete a YouTube channel from the configuration. This will delete all data associated with this channel."""
@@ -426,29 +440,17 @@ class YouTube(commands.Cog):
 				continue
 			dchans.append(dchan.mention)
 
+		view = ConfirmView(ctx.author)
 		prompt = (_("You are about to remove {channel} from the configuration.").format(channel=bold(name))
 			+ " " + _("It is subscribed to by {channels}.").format(channels=humanize_list(dchans)) + "\n"
 			+ _("Do you want to continue?")
 		)
-		query: discord.Message = await ctx.send(prompt)
-		start_adding_reactions(query, ReactionPredicate.YES_OR_NO_EMOJIS)
-		pred = ReactionPredicate.yes_or_no(query, ctx.author)
-
-		try:
-			await ctx.bot.wait_for("reaction_add", check=pred, timeout=30)
-		except asyncio.TimeoutError:
-			with suppress(discord.NotFound):
-				await query.delete()
-
-		if not pred.result:
-			with suppress(discord.NotFound):
-				await query.delete()
-			return await ctx.send(_("{channel} has not been deleted.").format(channel=bold(name)))
-		else:
-			with suppress(discord.Forbidden):
-				await query.clear_reactions()
+		view.message = await ctx.send(prompt, view=view)
+		await view.wait()
+		if view.result:
 			await self.config.custom('subscriptions', yid).clear()
-			await ctx.send(success(_("{channel} has been removed from the configuration.").format(channel=bold(name))))
+			return await ctx.send(success(_("{channel} has been removed from the configuration.").format(channel=bold(name))))
+		return await ctx.send(warning(_("{channel} has not been deleted.").format(channel=bold(name))))
 
 	@checks.is_owner()
 	@youtube.command()
@@ -469,7 +471,6 @@ class YouTube(commands.Cog):
 		await ctx.send(success(_("I will now check every {time} for new videos.").format(time=humanize_timedelta(seconds=interval))))
 
 	@checks.is_owner()
-	@commands.bot_has_permissions(add_reactions=True)
 	@youtube.command(hidden=True)
 	async def migrate(self, ctx: commands.Context) -> None:
 		"""Import all subscriptions from the `Tube` cog."""
@@ -484,26 +485,15 @@ class YouTube(commands.Cog):
 		if channels == 0:
 			return await ctx.send(error(_("No data found to import. Migration has been cancelled.")))
 
+		view = ConfirmView(ctx.author)
 		prompt = _("You are about to import **{channels} YouTube subscriptions**.").format(channels=channels)
 		prompt += " " + _("Depending on the internet speed of the server, this might take a while.") + "\n"
 		prompt += _("Do you want to continue?")
-		query: discord.Message = await ctx.send(prompt)
-		start_adding_reactions(query, ReactionPredicate.YES_OR_NO_EMOJIS)
-		pred = ReactionPredicate.yes_or_no(query, ctx.author)
-
-		try:
-			await ctx.bot.wait_for("reaction_add", check=pred, timeout=30)
-		except asyncio.TimeoutError:
-			with suppress(discord.NotFound):
-				await query.delete()
-
-		if not pred.result:
-			with suppress(discord.NotFound):
-				await query.delete()
+		view.message = await ctx.send(prompt, view=view)
+		await view.wait()
+		if not view.result:
 			return await ctx.send(_("Migration has been cancelled."))
 
-		with suppress(discord.Forbidden):
-			await query.clear_reactions()
 		await ctx.send(_("Migration started…"))
 		async with ctx.typing():
 			for g in self.bot.guilds:
@@ -535,40 +525,15 @@ class YouTube(commands.Cog):
 		await ctx.send(success(_("Migration completed!")))
 
 		if 'Tube' in ctx.bot.extensions:
+			view = ConfirmView(ctx.author)
 			prompt = _("Running the {tube} cog alongside this cog *will* get spammy. Do you want to unload {tube}?").format(tube=inline("Tube"))
-			query: discord.Message = await ctx.send(prompt)
-			start_adding_reactions(query, ReactionPredicate.YES_OR_NO_EMOJIS)
-			pred = ReactionPredicate.yes_or_no(query, ctx.author)
 
-			try:
-				await ctx.bot.wait_for("reaction_add", check=pred, timeout=30)
-			except asyncio.TimeoutError:
-				with suppress(discord.NotFound):
-					await query.delete()
-
-			if not pred.result:
-				with suppress(discord.NotFound):
-					await query.delete()
-			else:
-				with suppress(discord.Forbidden):
-					await query.clear_reactions()
-				ctx.bot.unload_extension('Tube')
-
-	@checks.is_owner()
-	@commands.guild_only()
-	@youtube.command()
-	async def test(self, ctx: commands.Context, channelYouTube: Optional[str]) -> None:
-		"""Send a test message to the current channel."""
-		yid = 'UCBR8-60-B28hp2BmDPdntcQ'
-		if channelYouTube and not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
-			return
-
-		ytFeedData = await self.get_feed(yid)
-		ytFeed = feedparser.parse(ytFeedData)
-		dchans = {str(ctx.channel.id): {'mention': ctx.guild.id, 'message': f"This is a test message for **{{author}}** from the YouTube cog, as requested by {ctx.author.mention}.\n**Sorry for pinging {{mention}}.** I don't do this by default for normal new videos, just for this test. *Or* when explicitly requested."}}
-
-		for entry in ytFeed['entries'][:1][::-1]:
-			await self.send_message(entry, ctx.channel, dchans)
+			view.message = await ctx.send(prompt, view=view)
+			await view.wait()
+			with suppress(discord.NotFound):
+				await view.message.delete()
+			if view.result:
+				await ctx.bot.unload_extension('Tube')
 
 	@tasks.loop(minutes=1)
 	async def background_get_new_videos(self) -> None:
@@ -683,9 +648,7 @@ class YouTube(commands.Cog):
 			upd = await self.config.custom('subscriptions', yid).updated()
 			for entry in feed['entries'][:4][::-1]:
 				published = datetime.strptime(entry['published'], YT_FORMAT)
-				updated = datetime.strptime(entry['updated'], YT_FORMAT)
-
-				if updated.timestamp() > upd and entry['yt_videoid'] not in processed:
+				if published.timestamp() > upd and entry['yt_videoid'] not in processed:
 					processed = [entry['yt_videoid']] + processed
 					for dchan in dchans:
 						channel = self.bot.get_channel(int(dchan))
