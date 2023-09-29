@@ -145,12 +145,18 @@ class YouTube(commands.Cog):
 				if dchan in dchans.keys():
 					guildSub = True
 					subCount += 1
+					info = await self.config.custom('subscriptions', yid).name()
+					if oldname := dchans.get(dchan).get('oldname'):
+						info += f" \u27ea {oldname}"
+
 					d = {'message': '\u1d9c', 'mention': '\u1d50', 'publish': '\u1d56'}
-					sub = self.config.custom('subscriptions', yid)
-					tags = ''.join(v for k, v in d.items() if k in dchans.get(dchan))
+					if tags := ''.join(v for k, v in d.items() if k in dchans.get(dchan)):
+						info += f" {tags}"
+
 					if (errorCount := await self.config.custom('subscriptions', yid).errorCount() or 0) > 6:
-						tags += " \u2016 " + _("{counter} errors").format(counter=errorCount)
-					guildSubs.append({'name': await sub.name(), 'oldname': dchans.get(dchan).get('oldname'), 'id': yid, 'updated': await sub.updated(), 'discord': channel, 'tags': tags})
+						info += " \u2016 " + _("{count} errors").format(count=errorCount)
+
+					guildSubs.append({'info': info, 'id': yid, 'updated': await self.config.custom('subscriptions', yid).updated(), 'discord': channel})
 			if guildSub:
 				subCountYt += 1
 
@@ -158,13 +164,8 @@ class YouTube(commands.Cog):
 			return await ctx.send(warning(_("No subscriptions yet - try adding some!")))
 
 		for sub in sorted(guildSubs, key=lambda d: d['updated'], reverse=True):
-			name = sub['name']
-			if sub['oldname']:
-				name += f" \u27ea {sub['oldname']}"
-			if sub['tags']:
-				name += f" {sub['tags']}"
 			channel = sub['discord'].id
-			subsByChannel[channel].update({sub['id']: {'updated': sub['updated'], 'name': name}})
+			subsByChannel[channel].update({sub['id']: {'updated': sub['updated'], 'info': sub['info']}})
 		subsByChannel = {k:v for k,v in subsByChannel.items() if v}
 
 		text = richText = ""
@@ -186,9 +187,9 @@ class YouTube(commands.Cog):
 				richText += f" ({bold(channel.guild.name)})"
 
 			for yid, data in sub_ids.items():
-				info = f"{yid} {datetime.fromtimestamp(data['updated'])}"
-				text += f"\n{info} {data['name']}"
-				richText += f"\n{inline(info)} {escape(data['name'], formatting=True)}"
+				ytinfo = f"{yid} {datetime.fromtimestamp(data['updated'])}"
+				text += f"\n{ytinfo} {data['info']}"
+				richText += f"\n{inline(ytinfo)} {escape(data['info'], formatting=True)}"
 
 		pages = list(pagify(richText.strip()))
 		if isinstance(ctx.channel, discord.DMChannel) or len(pages) > await self.config.guild(ctx.guild).maxpages():
@@ -631,9 +632,6 @@ class YouTube(commands.Cog):
 				await self.config.custom('subscriptions', yid).errorCount.clear()
 				await self.config.custom('subscriptions', yid).lastTry.clear()
 
-			if await self.config.custom('subscriptions', yid).oldname():
-				await self.config.custom('subscriptions', yid).oldname.clear()
-
 			feed = feedparser.parse(feedData)
 			if name != feed['feed']['title']:
 				for dchan in dchans:
@@ -663,7 +661,7 @@ class YouTube(commands.Cog):
 
 	async def send_message(self, entry: feedparser, channel: discord.TextChannel, dchans: dict) -> None:
 		dchan = str(channel.id)
-		mentions = discord.AllowedMentions()
+		mentions = discord.AllowedMentions.none()
 		if role := dchans.get(dchan).get('mention'):
 			if role == channel.guild.id:
 				role = channel.guild.default_role.name
