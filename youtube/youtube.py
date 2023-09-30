@@ -26,7 +26,7 @@ YT_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
 
 def has_feature(feature: str):
 	def predicate(ctx: commands.Context):
-		return feature.upper() in ctx.guild.features
+		return ctx.guild and feature.upper() in ctx.guild.features
 	return commands.check(predicate)
 
 @cog_i18n(_)
