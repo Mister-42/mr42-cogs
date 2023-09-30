@@ -14,7 +14,7 @@ from redbot.core import Config, checks, commands
 from redbot.core.bot import Red
 from redbot.core.data_manager import bundled_data_path
 from redbot.core.i18n import Translator, cog_i18n
-from redbot.core.utils.chat_formatting import bold, error, escape, humanize_list, humanize_timedelta, inline, pagify, success, text_to_file, warning
+from redbot.core.utils.chat_formatting import bold, error, escape, humanize_list, humanize_timedelta, inline, pagify, question, success, text_to_file, warning
 from redbot.core.utils.views import ConfirmView
 from string import Formatter
 
@@ -23,6 +23,11 @@ log = logging.getLogger("red.mr42-cogs.youtube")
 RequestType = Literal["discord_deleted_user", "owner", "user", "user_strict"]
 YT_COLOR = discord.Colour.from_rgb(255, 0, 0)
 YT_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
+
+def has_feature(feature: str):
+	def predicate(ctx: commands.Context):
+		return feature.upper() in ctx.guild.features
+	return commands.check(predicate)
 
 @cog_i18n(_)
 class YouTube(commands.Cog):
@@ -87,7 +92,7 @@ class YouTube(commands.Cog):
 				await self.config.custom('subscriptions', yid).set(newChannel)
 
 		if ctx.command.qualified_name != 'youtube migrate':
-			await ctx.send(success(_("YouTube channel {title} will now be announced in {channel} when new videos are published.").format(title=bold(feedTitle), channel=channel.mention)))
+			await ctx.send(success(_("The YouTube channel {title} will now be announced in {channel} when new videos are published.").format(title=bold(feedTitle), channel=channel.mention)))
 
 	@checks.admin_or_permissions(manage_guild=True)
 	@commands.guild_only()
@@ -234,7 +239,7 @@ class YouTube(commands.Cog):
 		elif mention == "@here":
 			m = "here"
 		elif mention:
-			return await ctx.send(error(_("You can't set {mention} as mention").format(mention=mention)))
+			return await ctx.send(error(_("You can't set {mention} as mention.").format(mention=mention)))
 		await self.subscription_discord_options(ctx, 'mention', channelYouTube, m, channelDiscord)
 
 	@checks.admin_or_permissions(manage_guild=True)
@@ -364,14 +369,12 @@ class YouTube(commands.Cog):
 
 	@checks.admin_or_permissions(manage_guild=True)
 	@commands.guild_only()
+	@has_feature('news')
 	@youtube.command(aliases=['p'])
 	async def publish(self, ctx: commands.Context, channelYouTube: str, channelDiscord: Optional[discord.TextChannel] = None) -> None:
 		""" Toggles publishing new messages to a Discord channel.
 
 		This feature is only available on Community Servers."""
-		if 'COMMUNITY' not in ctx.guild.features:
-			return await ctx.send(error(_("This feature is only available on Community Servers.")))
-
 		if not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
 			return
 
@@ -446,7 +449,7 @@ class YouTube(commands.Cog):
 			+ " " + _("It is subscribed to by {channels}.").format(channels=humanize_list(dchans)) + "\n"
 			+ _("Do you want to continue?")
 		)
-		view.message = await ctx.send(prompt, view=view)
+		view.message = await ctx.send(question(prompt), view=view)
 		await view.wait()
 		if view.result:
 			await self.config.custom('subscriptions', yid).clear()
@@ -490,7 +493,7 @@ class YouTube(commands.Cog):
 		prompt = _("You are about to import **{channels} YouTube subscriptions**.").format(channels=channels)
 		prompt += " " + _("Depending on the internet speed of the server, this might take a while.") + "\n"
 		prompt += _("Do you want to continue?")
-		view.message = await ctx.send(prompt, view=view)
+		view.message = await ctx.send(question(prompt), view=view)
 		await view.wait()
 		if not view.result:
 			return await ctx.send(_("Migration has been cancelled."))
@@ -528,8 +531,7 @@ class YouTube(commands.Cog):
 		if 'Tube' in ctx.bot.extensions:
 			view = ConfirmView(ctx.author)
 			prompt = _("Running the {tube} cog alongside this cog *will* get spammy. Do you want to unload {tube}?").format(tube=inline("Tube"))
-
-			view.message = await ctx.send(prompt, view=view)
+			view.message = await ctx.send(question(prompt), view=view)
 			await view.wait()
 			with suppress(discord.NotFound):
 				await view.message.delete()
