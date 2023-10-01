@@ -649,7 +649,7 @@ class YouTube(commands.Cog):
 			for entry in feed['entries'][:4][::-1]:
 				published = datetime.strptime(entry['published'], YT_FORMAT)
 				if published.timestamp() > upd and entry['yt_videoid'] not in processed:
-					processed = [entry['yt_videoid']] + processed
+					processed.insert(0, entry['yt_videoid'])
 					for dchan in dchans:
 						channel = self.bot.get_channel(int(dchan))
 						if not channel.permissions_for(channel.guild.me).send_messages:
@@ -711,10 +711,14 @@ class YouTube(commands.Cog):
 				await message.publish()
 
 	@background_get_new_videos.before_loop
-	async def wait_for_red(self) -> NoReturn:
+	async def background_get_new_videos_wait_for_red(self) -> NoReturn:
 		await self.bot.wait_until_red_ready()
 		interval = await self.config.interval()
 		self.background_get_new_videos.change_interval(seconds=interval)
+
+	@background_get_new_videos.error
+	async def background_get_new_videos_error(self, error):
+		log.error("FATAL ERROR!", exc_info=error)
 
 	async def get_feed(self, channel: str) -> Union[aiohttp.ClientResponse, bytes]:
 		"""Fetch data from a feed."""
