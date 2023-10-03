@@ -166,8 +166,8 @@ class YouTube(commands.Cog):
 			return await ctx.send(warning(_("No subscriptions yet - try adding some!")))
 
 		text = richText = ""
-		subCount = len(set(subsYt))
-		subCountYt = sum(len(v) for v in subsByChannel.values())
+		subCount = len(subsYt)
+		subCountYt = len(set(subsYt))
 		if len(subsByChannel) > 1:
 			text = _("{count} total subscriptions").format(count=subCount)
 			if subCount != subCountYt:
