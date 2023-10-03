@@ -130,26 +130,22 @@ class YouTube(commands.Cog):
 	@youtube.command()
 	async def list(self, ctx: commands.Context, channelDiscord: Optional[discord.TextChannel] = None) -> None:
 		"""List current subscriptions."""
-		guildSubs = []
 		subsByChannel = {}
-		subCount = subCountYt = 0
+		subsYt = []
 
-		for yid in await self.config.custom('subscriptions').get_raw():
+		data = await self.config.custom('subscriptions').get_raw()
+		for yid in dict(sorted(data.items(), key=lambda d: d[1]['updated'], reverse=True)):
 			dchans = await self.config.custom('subscriptions', yid).discord()
 
 			channels = [self.bot.get_channel(int(channel)) for channel in dchans.keys()]
 			if ctx.command.qualified_name != 'youtube listall':
 				channels = [channelDiscord] if channelDiscord else ctx.guild.channels
 
-			guildSub = False
 			for channel in channels:
 				if not channel:
 					continue
-				subsByChannel[channel.id] = {}
 				dchan = str(channel.id)
 				if dchan in dchans.keys():
-					guildSub = True
-					subCount += 1
 					info = await self.config.custom('subscriptions', yid).name()
 					if oldname := dchans.get(dchan).get('oldname'):
 						info += f" \u27ea {oldname}"
@@ -161,19 +157,17 @@ class YouTube(commands.Cog):
 					if (errorCount := await self.config.custom('subscriptions', yid).errorCount() or 0) > 6:
 						info += " \u2016 " + _("{count} errors").format(count=errorCount)
 
-					guildSubs.append({'info': info, 'id': yid, 'updated': await self.config.custom('subscriptions', yid).updated(), 'discord': channel})
-			if guildSub:
-				subCountYt += 1
+					if channel.id not in subsByChannel:
+						subsByChannel[channel.id] = {}
+					subsByChannel[channel.id].update({yid: {'updated': await self.config.custom('subscriptions', yid).updated(), 'info': info}})
+					subsYt.append(yid)
 
-		if not len(guildSubs):
+		if not len(subsByChannel):
 			return await ctx.send(warning(_("No subscriptions yet - try adding some!")))
 
-		for sub in sorted(guildSubs, key=lambda d: d['updated'], reverse=True):
-			channel = sub['discord'].id
-			subsByChannel[channel].update({sub['id']: {'updated': sub['updated'], 'info': sub['info']}})
-		subsByChannel = {k:v for k,v in subsByChannel.items() if v}
-
 		text = richText = ""
+		subCount = len(set(subsYt))
+		subCountYt = sum(len(v) for v in subsByChannel.values())
 		if len(subsByChannel) > 1:
 			text = _("{count} total subscriptions").format(count=subCount)
 			if subCount != subCountYt:
@@ -717,7 +711,7 @@ class YouTube(commands.Cog):
 		self.background_get_new_videos.change_interval(seconds=interval)
 
 	@background_get_new_videos.error
-	async def background_get_new_videos_error(self, error):
+	async def background_get_new_videos_error(self, error) -> NoReturn:
 		log.error("FATAL ERROR!", exc_info=error)
 
 	async def get_feed(self, channel: str) -> Union[aiohttp.ClientResponse, bytes]:
