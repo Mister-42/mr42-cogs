@@ -21,6 +21,7 @@ You can install individual cogs with the following command. Replace `[cog]` with
 | Cog                 | Description |
 | :------------------ | :---------- |
 | [avatar](#avatar)   | Returns a user's avatar as attachment |
+| [kira](#kira)       | Remind people to only post relevant links |
 | [youtube](#youtube) | Posts in a channel every time a new video is added to a YouTube channel |
 | [ytdedup](#ytdedup) | Remove duplicate YouTube links in specified channels |
 
@@ -36,6 +37,22 @@ Returns a user's avatar as attachment.
 | :------- | :----------------------------------------------------- |
 | `avatar` | User: can be user mention, nickname, username, user ID |
 
+## kira
+
+Remind people to only post relevant links.
+
+### Command
+
+| Prefix     | Option                                                    |
+| :--------- | :-------------------------------------------------------- |
+| `watch`    | Add a channel to be watched                               |
+| `unwatch`  | Remove a channel from the watchlist                       |
+| `question` | Change the question the sender will be required to answer |
+| `timeout`  | Set the timeout for questioning the sender                |
+| `domain`   | Configure which domains to look out for*                  |
+
+*) Domains are not configurable yet. The current domains are youtu.be, youtube.com, www.youtube.com, and music.youtube.com
+
 ## youtube
 
 Posts in a channel every time a new video is added to a YouTube channel.
@@ -44,6 +61,7 @@ Biggest advantages over `Tube`:
 
 - Fetch any YouTube feed only once per interval, independent of how many Discord channels are subscribed to it
 - Add YouTube channels or edit its options with almost any URL. No more fiddling around to get the Channel ID
+- Better reports on what YouTube channels are monitored and where they are posted
 
 Please be aware that the "new" https://www.youtube.com/@channel.name URLs are not yet support by the upstream library `PyTube` used in this project. Please use any video URL from such channels until the upstream issue has been resolved.
 
