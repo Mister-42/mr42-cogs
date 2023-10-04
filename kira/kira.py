@@ -19,7 +19,7 @@ RequestType = Literal["discord_deleted_user", "owner", "user", "user_strict"]
 
 @cog_i18n(_)
 class KirA(commands.Cog):
-	"""Keep it relevant!"""
+	"""Keep It Relevant, A......!"""
 
 	def __init__(self, bot: Red) -> None:
 		self.bot = bot
@@ -55,7 +55,7 @@ class KirA(commands.Cog):
 			return await ctx.send(error(_("I don't have permission to {perm} in {channel}.").format(perm=humanize_list(perm), channel=channel.mention)))
 
 		await self.config.channel(channel).set({})
-		await ctx.send(success(_("The channel {channel} will now be monitored for configured links.").format(channel=channel.mention)))
+		await ctx.send(success(_("The channel {channel} will now be monitored for links.").format(channel=channel.mention)))
 
 	@checks.admin_or_permissions(manage_guild=True)
 	@commands.guild_only()
@@ -66,7 +66,7 @@ class KirA(commands.Cog):
 			return await ctx.send(warning(_("The channel {channel} is not being watched.").format(channel=channel.mention)))
 
 		await self.config.channel(channel).clear()
-		await ctx.send(success(_("The channel {channel} will no longer be monitored for configured links.").format(channel=channel.mention)))
+		await ctx.send(success(_("The channel {channel} will no longer be monitored for links.").format(channel=channel.mention)))
 
 	@checks.admin_or_permissions(manage_guild=True)
 	@commands.guild_only()
@@ -113,8 +113,7 @@ class KirA(commands.Cog):
 
 	@commands.Cog.listener()
 	async def on_message(self, message: discord.Message) -> None:
-		# if not message.author.bot and message.author != message.guild.owner and message.channel.id in await self.config.all_channels():
-		if not message.author.bot and message.channel.id in await self.config.all_channels():
+		if not message.author.bot and message.author != message.guild.owner and message.channel.id in await self.config.all_channels():
 			await self.process_message(message)
 
 	async def red_delete_data_for_user(self, *, requester: RequestType, user_id: int) -> None:
