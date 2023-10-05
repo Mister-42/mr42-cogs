@@ -39,7 +39,7 @@ class KirA(commands.Cog):
 	@commands.guild_only()
 	@kira.command(aliases=['w'])
 	async def watch(self, ctx: commands.Context, channel: discord.TextChannel) -> None:
-		"""Add a channel to be watched."""
+		"""Add a channel to be monitored."""
 		if channel.id in await self.config.all_channels():
 			return await ctx.send(warning(_("The channel {channel} is already being monitored.").format(channel=channel.mention)))
 
@@ -63,7 +63,7 @@ class KirA(commands.Cog):
 	async def unwatch(self, ctx: commands.Context, channel: discord.TextChannel) -> None:
 		"""Remove a channel from the watchlist."""
 		if channel.id not in await self.config.all_channels():
-			return await ctx.send(warning(_("The channel {channel} is not being watched.").format(channel=channel.mention)))
+			return await ctx.send(warning(_("The channel {channel} is not being monitored.").format(channel=channel.mention)))
 
 		await self.config.channel(channel).clear()
 		await ctx.send(success(_("The channel {channel} will no longer be monitored for links.").format(channel=channel.mention)))
@@ -74,7 +74,7 @@ class KirA(commands.Cog):
 	async def question(self, ctx: commands.Context, channel: discord.TextChannel, question: str) -> None:
 		"""Change the question the sender will be required to answer."""
 		if channel.id not in await self.config.all_channels():
-			return await ctx.send(warning(_("The channel {channel} is not being watched.").format(channel=channel.mention)))
+			return await ctx.send(warning(_("The channel {channel} is not being monitored.").format(channel=channel.mention)))
 
 		await self.config.channel(channel).question.set(question)
 		await ctx.send(success(_("The question has been updated:") + "\n" + question))
@@ -87,7 +87,7 @@ class KirA(commands.Cog):
 
 		Default is 10 seconds."""
 		if channel.id not in await self.config.all_channels():
-			return await ctx.send(warning(_("The channel {channel} is not being watched.").format(channel=channel.mention)))
+			return await ctx.send(warning(_("The channel {channel} is not being monitored.").format(channel=channel.mention)))
 
 		t = 0 if timeout == 0 else abs(timeout or await self.config.channel(channel).timeout())
 		text = _("1 second") if t == 1 else _("{time} seconds").format(time=t)
@@ -106,7 +106,7 @@ class KirA(commands.Cog):
 
 		This function doesn't do anything at the moment, but will be expanded later."""
 		if channel.id not in await self.config.all_channels():
-			return await ctx.send(warning(_("The channel {channel} is not being watched.").format(channel=channel.mention)))
+			return await ctx.send(warning(_("The channel {channel} is not being monitored.").format(channel=channel.mention)))
 
 		domains = await self.config.channel(channel).domains()
 		await ctx.send(_("Current configured domains: {domains}").format(domains=humanize_list(domains)))
@@ -114,34 +114,21 @@ class KirA(commands.Cog):
 	@commands.Cog.listener()
 	async def on_message(self, message: discord.Message) -> None:
 		if not message.author.bot and message.author != message.guild.owner and message.channel.id in await self.config.all_channels():
-			await self.process_message(message)
+			for link in re.findall(r'(https?://\S+/)', message.content):
+				if urlparse(link).hostname in await self.config.channel(message.channel).domains():
+					timeout = await self.config.channel(message.channel).timeout()
+					if timeout and message.channel.permissions_for(message.guild.me).manage_messages:
+						prompt = await self.config.channel(message.channel).question()
+						view = ConfirmView(message.author, timeout=timeout)
+						view.message = await message.reply(prompt, view=view)
+						await view.wait()
+						with suppress(discord.NotFound):
+							await view.message.delete()
+
+						if view.result:
+							return
+					with suppress(discord.NotFound):
+						return await message.delete()
 
 	async def red_delete_data_for_user(self, *, requester: RequestType, user_id: int) -> None:
 		pass
-
-	async def process_message(self, message: discord.Message) -> None:
-		if embeds := message.embeds:
-			for embed in embeds:
-				await self.process_link(embed.url, message)
-		elif text := message.content:
-			links = re.findall(r'(https?://\S+/\S+[a-zA-Z0-9])', text)
-			for link in links:
-				await self.process_link(link, message)
-
-	async def process_link(self, url: str, message: discord.Message) -> None:
-		query = urlparse(url)
-		if query.hostname in await self.config.channel(message.channel).domains():
-			timeout = await self.config.channel(message.channel).timeout()
-			if timeout and message.channel.permissions_for(message.guild.me).manage_messages:
-				view = ConfirmView(message.author, timeout=timeout)
-
-				prompt = await self.config.channel(message.channel).question()
-				view.message = await message.reply(prompt, view=view)
-				await view.wait()
-				with suppress(discord.NotFound):
-					await view.message.delete()
-
-				if view.result:
-					return
-			with suppress(discord.NotFound):
-				return await message.delete()

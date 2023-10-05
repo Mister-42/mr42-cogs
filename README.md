@@ -45,7 +45,7 @@ Remind people to only post relevant links.
 
 | Prefix     | Option                                                    |
 | :--------- | :-------------------------------------------------------- |
-| `watch`    | Add a channel to be watched                               |
+| `watch`    | Add a channel to be monitored                             |
 | `unwatch`  | Remove a channel from the watchlist                       |
 | `question` | Change the question the sender will be required to answer |
 | `timeout`  | Set the timeout for questioning the sender                |
