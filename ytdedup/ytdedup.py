@@ -1,6 +1,5 @@
 import contextlib
 import discord
-import logging
 import re
 
 from datetime import datetime, timedelta
@@ -13,7 +12,6 @@ from typing import Literal, NoReturn
 from urllib.parse import urlparse, parse_qs
 
 _ = Translator("YouTube", __file__)
-log = logging.getLogger("red.mr42-cogs.ytdedup")
 RequestType = Literal["discord_deleted_user", "owner", "user", "user_strict"]
 
 @cog_i18n(_)
@@ -77,9 +75,7 @@ class YouTubeDeDup(commands.Cog):
 
 		Default is 7 days."""
 		history = abs(history)
-		days = f"{history} days"
-		if history == 1:
-			days = "1 day"
+		days = _("1 day") if history == 1 else _("{history} days").format(history=history)
 
 		await self.config.guild(ctx.guild).history.set(history)
 		await ctx.send(success(_("I will keep message history for {days}.").format(days=bold(days))))
@@ -125,18 +121,17 @@ class YouTubeDeDup(commands.Cog):
 				await self.process_vid(link, message)
 
 	async def process_vid(self, url: str, message: discord.Message) -> None:
-		if vid := self.get_yid(url):
+		if yid := self.get_yid(url):
 			channel = message.channel
 			messages = await self.config.channel(channel).messages()
 
-			if channel.permissions_for(message.guild.me).manage_messages and vid in [message for message in messages]:
+			if channel.permissions_for(message.guild.me).manage_messages and yid in [message for message in messages]:
 				rmmsg = message
 				if message.author.bot:
 					with contextlib.suppress(discord.NotFound):
-						rmmsg = await channel.fetch_message(messages.get(vid).get('msg'))
+						rmmsg = await channel.fetch_message(messages.get(yid).get('msg'))
 
 				await rmmsg.delete()
-				log.info(f"Deleted https://youtu.be/{vid} by {rmmsg.author.name} from #{channel.name} ({rmmsg.guild})")
 				if rmmsg is message and not message.author.bot and await self.config.guild(channel.guild).notify():
 					txt = _("Hello {name}. I have deleted your link, as it was already posted here recently.").format(name=message.author.mention)
 					msg = await channel.send(content=warning(txt))
@@ -146,7 +141,7 @@ class YouTubeDeDup(commands.Cog):
 				'msg': message.id,
 				'time': int(datetime.timestamp(message.created_at))
 			}
-			messages.update({vid: newVid})
+			messages.update({yid: newVid})
 			await self.config.channel(channel).messages.set(messages)
 
 	def get_yid(self, url: str):
