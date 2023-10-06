@@ -49,11 +49,7 @@ class YouTubeDeDup(commands.Cog):
 		if perm:
 			return await ctx.send(error(_("I don't have permission to {perm} in {channel}.").format(perm=humanize_list(perm), channel=channel.mention)))
 
-		await self.config.channel(channel).messages.set({})
-		days = await self.config.guild(ctx.guild).history()
-		async with ctx.typing():
-			async for message in channel.history(after=datetime.now() - timedelta(days=days)):
-				await self.process_message(message)
+		await self.get_message_history(ctx, channel)
 		await ctx.send(success(_("The channel {channel} will now be monitored for duplicate YouTube links.").format(channel=channel.mention)))
 
 	@checks.admin_or_permissions(manage_guild=True)
@@ -75,9 +71,13 @@ class YouTubeDeDup(commands.Cog):
 
 		Default is 7 days."""
 		history = abs(history)
-		days = _("1 day") if history == 1 else _("{history} days").format(history=history)
-
 		await self.config.guild(ctx.guild).history.set(history)
+
+		for channel in ctx.guild.channels:
+			if channel.id in await self.config.all_channels():
+				await self.get_message_history(ctx, channel)
+
+		days = _("1 day") if history == 1 else _("{history} days").format(history=history)
 		await ctx.send(success(_("I will keep message history for {days}.").format(days=bold(days))))
 
 	@checks.admin_or_permissions(manage_guild=True)
@@ -109,6 +109,10 @@ class YouTubeDeDup(commands.Cog):
 			else:
 				await self.config.channel_from_id(chan).clear()
 
+	@background_clean.before_loop
+	async def background_clean_wait_for_red(self) -> NoReturn:
+		await self.bot.wait_until_red_ready()
+
 	async def red_delete_data_for_user(self, *, requester: RequestType, user_id: int) -> None:
 		pass
 
@@ -135,14 +139,21 @@ class YouTubeDeDup(commands.Cog):
 				await rmmsg.delete()
 				if rmmsg is message and not message.author.bot and await self.config.guild(channel.guild).notify():
 					txt = _("Hello {name}. I have deleted your link, as it was already posted here recently.").format(name=message.author.mention)
-					msg = await channel.send(content=warning(txt), delete_after=10)
+					await channel.send(content=warning(txt), delete_after=10)
 
 			newVid = {
 				'msg': message.id,
-				'time': int(datetime.timestamp(message.created_at))
+				'time': int(message.created_at.timestamp())
 			}
-			messages.update({yid: newVid})
-			await self.config.channel(channel).messages.set(messages)
+			obj = getattr(self.config.channel(channel).messages, yid)
+			await obj.set(newVid)
+
+	async def get_message_history(self, ctx: commands.Context, channel: discord.TextChannel):
+		await self.config.channel(channel).messages.set({})
+		days = await self.config.guild(ctx.guild).history()
+		async with ctx.typing():
+			async for message in channel.history(after=datetime.now() - timedelta(days=days), limit=None):
+				await self.process_message(message)
 
 	def get_yid(self, url: str):
 		query = urlparse(url)
