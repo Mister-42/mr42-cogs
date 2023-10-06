@@ -102,11 +102,12 @@ class YouTubeDeDup(commands.Cog):
 			if channel := self.bot.get_channel(chan):
 				days = await self.config.guild(channel.guild).history()
 				messages = await self.config.channel(channel).messages()
-				messagesOrig = messages.copy()
-				for message in messagesOrig:
+				for message in messages:
 					if messages.get(message).get('time') < int(datetime.timestamp(datetime.now() - timedelta(days=days))):
-						messages.pop(message)
-				await self.config.channel(channel).messages.set(messages)
+						obj = getattr(self.config.channel(channel).messages, message)
+						await obj.clear()
+			else:
+				await self.config.channel_from_id(chan).clear()
 
 	async def red_delete_data_for_user(self, *, requester: RequestType, user_id: int) -> None:
 		pass
@@ -134,8 +135,7 @@ class YouTubeDeDup(commands.Cog):
 				await rmmsg.delete()
 				if rmmsg is message and not message.author.bot and await self.config.guild(channel.guild).notify():
 					txt = _("Hello {name}. I have deleted your link, as it was already posted here recently.").format(name=message.author.mention)
-					msg = await channel.send(content=warning(txt))
-					await msg.delete(delay=10)
+					msg = await channel.send(content=warning(txt), delete_after=10)
 
 			newVid = {
 				'msg': message.id,
