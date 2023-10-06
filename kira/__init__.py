@@ -1,7 +1,7 @@
 import discord
 import json
-from pathlib import Path
 
+from pathlib import Path
 from redbot.core.bot import Red
 
 from .kira import KirA

@@ -186,9 +186,8 @@ class YouTube(commands.Cog):
 				richText += f" ({bold(channel.guild.name)})"
 
 			for yid, data in sub_ids.items():
-				ytinfo = f"{yid} {datetime.fromtimestamp(data['updated'])}"
-				text += f"\n{ytinfo} {data['info']}"
-				richText += f"\n{inline(ytinfo)} {escape(data['info'], formatting=True)}"
+				text += f"\n{yid} {datetime.fromtimestamp(data['updated'])} {data['info']}"
+				richText += f"\n{inline(yid)} <t:{data['updated']}:R> {escape(data['info'], formatting=True)}"
 
 		pages = list(pagify(richText.strip()))
 		if isinstance(ctx.channel, discord.DMChannel) or len(pages) > await self.config.guild(ctx.guild).maxpages():
