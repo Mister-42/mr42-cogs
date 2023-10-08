@@ -71,10 +71,11 @@ class YouTubeDeDup(commands.Cog):
 
 		Default is 7 days."""
 		history = abs(history)
+		prevHistory = await self.config.guild(ctx.guild).history()
 		await self.config.guild(ctx.guild).history.set(history)
 
-		for channel in ctx.guild.channels:
-			if channel.id in await self.config.all_channels():
+		if prevHistory < history:
+			for channel in [x for x in ctx.guild.channels if x.id in await self.config.all_channels()]:
 				await self.get_message_history(ctx, channel)
 
 		days = _("1 day") if history == 1 else _("{history} days").format(history=history)
