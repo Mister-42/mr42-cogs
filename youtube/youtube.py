@@ -382,9 +382,7 @@ class YouTube(commands.Cog):
 					await self.subscription_discord_options(ctx, 'publish', yid, publish, channel)
 
 		if notNews:
-			msg = _("The channels {list} are not Announcement Channels.")
-			if len(notNews) == 1:
-				msg = _("The channel {list} is not an Announcement Channel.")
+			msg = _("The channel {list} is not an Announcement Channel.") if len(notNews) == 1 else _("The channels {list} are not Announcement Channels.")
 			await ctx.send(warning(msg.format(list=humanize_list(notNews))))
 		elif not dchan:
 			await ctx.send(error(_("Subscription not found.")))
@@ -508,7 +506,7 @@ class YouTube(commands.Cog):
 						await self.subscription_discord_options(ctx, 'mention', yid, mention, channel)
 
 					if data.get('publish'):
-						await self.subscription_discord_options(ctx, 'publish', yid, channel)
+						await self.subscription_discord_options(ctx, 'publish', yid, True, channel)
 					count += 1
 
 				if count > 0:
@@ -534,12 +532,10 @@ class YouTube(commands.Cog):
 			for dchan in await self.config.custom('subscriptions', yid).discord():
 				if not self.bot.get_channel(int(dchan)):
 					await self.config.custom('subscriptions', yid, 'discord', dchan).clear()
-					log.info(f"Removed invalid channel {dchan} for subscription {yid} ({name})")
 					continue
 
 			if not (dchans := await self.config.custom('subscriptions', yid).discord()):
 				await self.config.custom('subscriptions', yid).clear()
-				log.info(f"Removed subscription {yid} ({name}): no subscribed channels left")
 				continue
 
 			now = int(datetime.now().timestamp())
@@ -576,7 +572,6 @@ class YouTube(commands.Cog):
 						with suppress(discord.Forbidden, discord.HTTPException):
 							await channel.guild.owner.send(message)
 					await self.config.custom('subscriptions', yid).clear()
-					log.info(f"Removed subscription {yid} ({name})")
 				elif errorCount >= 14 and errorCount%7 == 0 or errorCount == 41:
 					for dchan in dchans:
 						fullName = name
@@ -595,10 +590,8 @@ class YouTube(commands.Cog):
 						message += " " + _("It will be automatically removed from the configuration in {days}.").format(days=bold(deletionDays))
 						message += " " + _("If you do not take any action, I will inform you later again.") + "\n\n"
 						message += _("Have a nice day!")
-						try:
+						with suppress(discord.Forbidden, discord.HTTPException):
 							await channel.guild.owner.send(message)
-						except (discord.Forbidden, discord.HTTPException):
-							log.warning(f"Error {feedData.status} {feedData.reason} for channel {yid} ({name}), {channel.guild.owner.name} could not be notified")
 				continue
 
 			if errorCount > 30:
@@ -641,7 +634,7 @@ class YouTube(commands.Cog):
 					for dchan in dchans:
 						channel = self.bot.get_channel(int(dchan))
 						if not channel.permissions_for(channel.guild.me).send_messages:
-							log.warning(f"Not allowed to post messages to #{channel} ({channel.guild.name})")
+							log.warning(f"Not allowed to post messages to #{channel} for {channel.guild.name}")
 							continue
 						await self.send_message(entry, channel, dchans)
 
@@ -692,9 +685,7 @@ class YouTube(commands.Cog):
 				description = f"{role} {description}"
 			message = await channel.send(content=f"{description}\nhttps://youtu.be/{entry['yt_videoid']}", allowed_mentions=mentions)
 
-		if dchans.get(dchan).get('publish'):
-			if not channel.is_news():
-				return log.warning(f"Can't publish, not a news channel: {channel.id} ({channel.guild.name})")
+		if dchans.get(dchan).get('publish') and channel.is_news():
 			with suppress(discord.HTTPException):
 				await message.publish()
 
@@ -706,7 +697,7 @@ class YouTube(commands.Cog):
 
 	@background_get_new_videos.error
 	async def background_get_new_videos_error(self, error) -> NoReturn:
-		log.error("FATAL ERROR!", exc_info=error)
+		log.error("Please report this error to https://github.com/Mister-42/mr42-cogs/issues", exc_info=error)
 
 	async def get_feed(self, channel: str) -> Union[aiohttp.ClientResponse, bytes]:
 		"""Fetch data from a feed."""
@@ -715,7 +706,6 @@ class YouTube(commands.Cog):
 				async with session.get(f"https://www.youtube.com/feeds/videos.xml?channel_id={channel}") as response:
 					if response.status == 200:
 						return await response.read()
-					log.info("HTTP error {response.status} for {channel}")
 					return response
 			except (aiohttp.ClientConnectorError, aiohttp.ClientConnectionError):
 				raise ConnectionError
@@ -728,17 +718,12 @@ class YouTube(commands.Cog):
 				return match.string
 			url = f"https://www.youtube.com/channel/{match.string}"
 
-		# URL is a channel?
 		with suppress(Exception):
-			return pytube.Channel(url).channel_id
-
-		# URL is a video?
+			return pytube.Channel(url).channel_id	# URL is a channel?
 		with suppress(Exception):
-			return pytube.YouTube(url).channel_id
-
-		# URL is a playlist?
+			return pytube.YouTube(url).channel_id	# URL is a video?
 		with suppress(Exception):
-			return pytube.Playlist(url).owner_id
+			return pytube.Playlist(url).owner_id	# URL is a playlist?
 
 		msg = _("Unable to retrieve channel id from {channel}.").format(channel=bold(channelYouTube)) + "\n"
 		msg += _("If you're certain your input is correct, it might be a bug in {pytube}.").format(pytube=inline("pytube"))
@@ -753,13 +738,11 @@ class YouTube(commands.Cog):
 
 		if fail:
 			msg = _("You are not allowed to use {key} in the message.").format(key=humanize_list(fail))
-			if ctx.command.qualified_name != 'youtube migrate':
-				await ctx.send(error(msg))
-			else:
+			if ctx.command.qualified_name == 'youtube migrate':
 				msg += " " + _("Please fix this message later if you want to use a custom message: ")
 				prefixes = await self.bot.get_valid_prefixes(channelDiscord.guild)
 				msg += inline(f"{prefixes[0]}youtube custom {channelYouTube} {channelDiscord.mention} \"{message}\"")
-				await ctx.send(error(msg))
+			await ctx.send(error(msg))
 			return False
 		return True
 
