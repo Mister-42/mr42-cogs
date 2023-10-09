@@ -109,10 +109,9 @@ class YouTube(commands.Cog):
 			if dchans := await self.config.custom('subscriptions', yid).discord():
 				feedTitle = await self.config.custom('subscriptions', yid).name()
 				if not channelDiscord:
-					for channel in ctx.guild.channels:
-						if str(channel.id) in sorted(dchans.keys()):
-							await self.config.custom('subscriptions', yid, 'discord', channel.id).clear()
-							updated.append(channel.mention)
+					for channel in [x for x in ctx.guild.channels if str(x.id) in dchans.keys()]:
+						await self.config.custom('subscriptions', yid, 'discord', channel.id).clear()
+						updated.append(channel.mention)
 				elif str(channelDiscord.id) in dchans.keys():
 					await self.config.custom('subscriptions', yid, 'discord', channelDiscord.id).clear()
 					updated.append(channelDiscord.mention)
@@ -157,9 +156,11 @@ class YouTube(commands.Cog):
 					if (errorCount := await self.config.custom('subscriptions', yid).errorCount() or 0) > 6:
 						info += " \u2016 " + _("{count} errors").format(count=errorCount)
 
-					if channel.id not in subsByChannel:
-						subsByChannel[channel.id] = {}
-					subsByChannel[channel.id].update({yid: {'updated': await self.config.custom('subscriptions', yid).updated(), 'info': info}})
+					if channel.guild.id not in subsByChannel:
+						subsByChannel[channel.guild.id] = {}
+					if channel.id not in subsByChannel[channel.guild.id]:
+						subsByChannel[channel.guild.id][channel.id] = {}
+					subsByChannel[channel.guild.id][channel.id].update({yid: {'updated': await self.config.custom('subscriptions', yid).updated(), 'info': info}})
 					subsYt.append(yid)
 
 		if not len(subsByChannel):
@@ -174,27 +175,28 @@ class YouTube(commands.Cog):
 				text = _("{count} total subscriptions over {yt} YouTube channels").format(count=subCount, yt=subCountYt)
 			richText = bold(text)
 
-		for sub, sub_ids in sorted(subsByChannel.items()):
-			count = len(sub_ids)
-			channel = self.bot.get_channel(sub)
+		for guild in sorted(subsByChannel.keys()):
+			for sub, sub_ids in sorted(subsByChannel[guild].items()):
+				count = len(sub_ids)
+				channel = self.bot.get_channel(sub)
 
-			msg = "\n\n" + _("{count} YouTube subscriptions for {channel}") if subCount > 1 else _("1 YouTube subscription for {channel}")
-			text += msg.format(count=count, channel=f"#{channel.name}")
-			richText += msg.format(count=count, channel=channel.mention)
-			if ctx.command.qualified_name == 'youtube listall':
-				text += f" ({channel.guild.name})"
-				richText += f" ({bold(channel.guild.name)})"
+				msg = "\n\n" + _("{count} YouTube subscriptions for {channel}") if subCount > 1 else _("1 YouTube subscription for {channel}")
+				text += msg.format(count=count, channel=f"#{channel.name}")
+				richText += msg.format(count=count, channel=channel.mention)
+				if ctx.command.qualified_name == 'youtube listall':
+					text += f" ({channel.guild.name})"
+					richText += f" ({bold(channel.guild.name)})"
 
-			for yid, data in sub_ids.items():
-				text += f"\n{yid} {datetime.fromtimestamp(data['updated'])} {data['info']}"
-				richText += f"\n{inline(yid)} <t:{data['updated']}:R> {escape(data['info'], formatting=True)}"
+				for yid, data in sub_ids.items():
+					text += f"\n{yid} {datetime.fromtimestamp(data['updated'])} {data['info']}"
+					richText += f"\n{inline(yid)} <t:{data['updated']}:R> {escape(data['info'], formatting=True)}"
 
 		pages = list(pagify(richText.strip()))
 		if isinstance(ctx.channel, discord.DMChannel) or len(pages) > await self.config.guild(ctx.guild).maxpages():
 			if not isinstance(ctx.channel, discord.DMChannel) and not ctx.channel.permissions_for(ctx.guild.me).attach_files:
 				return await ctx.send(error("I do not have permission to attach files in this channel."))
-			page = text_to_file(text.strip(), "subscriptions.txt")
-			return await ctx.send(file=page)
+			txt = text_to_file(text.strip(), "subscriptions.txt")
+			return await ctx.send(file=txt)
 		for page in pages:
 			await ctx.send(page)
 
@@ -376,14 +378,13 @@ class YouTube(commands.Cog):
 			notNews = []
 			channels = [channelDiscord] if channelDiscord else ctx.guild.channels
 			if dchans := await self.config.custom('subscriptions', yid).discord():
-				for channel in channels:
-					if str(channel.id) in dchans.keys():
-						if not channel.is_news():
-							notNews.append(channel.mention)
-							continue
-						dchan = str(channel.id)
-						publish = not dchans.get(dchan).get('publish')
-						await self.subscription_discord_options(ctx, 'publish', yid, publish, channel)
+				for channel in [x for x in channels if str(x.id) in dchans.keys()]:
+					if not channel.is_news():
+						notNews.append(channel.mention)
+						continue
+					dchan = str(channel.id)
+					publish = not dchans.get(dchan).get('publish')
+					await self.subscription_discord_options(ctx, 'publish', yid, publish, channel)
 
 		if notNews:
 			msg = _("The channels {list} are not Announcement Channels.")
@@ -720,6 +721,7 @@ class YouTube(commands.Cog):
 				async with session.get(f"https://www.youtube.com/feeds/videos.xml?channel_id={channel}") as response:
 					if response.status == 200:
 						return await response.read()
+					log.info("HTTP error {response.status} for {channel}")
 					return response
 			except (aiohttp.ClientConnectorError, aiohttp.ClientConnectionError):
 				raise ConnectionError
@@ -766,14 +768,12 @@ class YouTube(commands.Cog):
 		updated = []
 		if sub := await self.config.custom('subscriptions', yid).discord():
 			channels = [channelDiscord] if channelDiscord else ctx.guild.channels
-			for channel in channels:
-				if str(channel.id) in sub.keys():
-					updated.append(channel.mention)
-					if data:
-						obj = getattr(self.config.custom('subscriptions', yid, 'discord', channel.id), action)
-						await obj.set(data)
-					elif sub.get(str(channel.id)).get(action):
-						await self.config.custom('subscriptions', yid, 'discord', channel.id, action).clear()
+			for channel in [x for x in channels if str(x.id) in sub.keys()]:
+				updated.append(channel.mention)
+				if data:
+					await getattr(self.config.custom('subscriptions', yid, 'discord', channel.id), action).set(data)
+				elif sub.get(str(channel.id)).get(action):
+					await self.config.custom('subscriptions', yid, 'discord', channel.id, action).clear()
 
 		if not updated:
 			return await ctx.send(error(_("Subscription not found.")))

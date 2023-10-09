@@ -105,8 +105,7 @@ class YouTubeDeDup(commands.Cog):
 				messages = await self.config.channel(channel).messages()
 				for message in messages:
 					if messages.get(message).get('time') < int(datetime.timestamp(datetime.now() - timedelta(days=days))):
-						obj = getattr(self.config.channel(channel).messages, message)
-						await obj.clear()
+						await getattr(self.config.channel(channel).messages, message).clear()
 			else:
 				await self.config.channel_from_id(chan).clear()
 
