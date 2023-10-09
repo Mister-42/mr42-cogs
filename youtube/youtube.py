@@ -62,7 +62,7 @@ class YouTube(commands.Cog):
 			channel = channelDiscord or ctx.channel
 			if dchans := await self.config.custom('subscriptions', yid).discord():
 				feedTitle = await self.config.custom('subscriptions', yid).name()
-				if str(channel.id) in dchans.keys():
+				if ctx.command.qualified_name != 'youtube migrate' and str(channel.id) in dchans.keys():
 					return await ctx.send(warning(_("{title} is already being announced in {channel}.").format(title=bold(f"{feedTitle}"), channel=channel.mention)))
 				await self.config.custom('subscriptions', yid, 'discord', channel.id).set({})
 			else:
@@ -211,13 +211,9 @@ class YouTube(commands.Cog):
 		Valid options are: {mention}, {author}, {title}, {published}, {updated} and {summary}.
 
 		You can also remove customization by not specifying any message."""
-		options = {'mention', 'author', 'title', 'published', 'updated', 'summary'}
-		fail = []
-		for x in [i[1] for i in Formatter().parse(message) if i[1] is not None and i[1] not in options]:
-			fail.append(inline(x))
-		if fail:
-			return await ctx.send(error(_("You are not allowed to use {key} in the message.").format(key=humanize_list(fail))))
 		msg = message.replace("\\n", "\n").strip()
+		if not await self.validate_custom_message(ctx, channelYouTube, msg, channelDiscord):
+			return
 		await self.subscription_discord_options(ctx, 'message', channelYouTube, msg, channelDiscord)
 
 	@checks.admin_or_permissions(manage_guild=True)
@@ -476,8 +472,7 @@ class YouTube(commands.Cog):
 		channels = 0
 		for g in self.bot.guilds:
 			guild = self.bot.get_guild(g.id)
-			for x in await TubeConfig.guild(guild).subscriptions():
-				channels += 1
+			channels += len(await TubeConfig.guild(guild).subscriptions())
 
 		if channels == 0:
 			return await ctx.send(error(_("No data found to import. Migration has been cancelled.")))
@@ -506,19 +501,19 @@ class YouTube(commands.Cog):
 						for token in TOKENIZER.split(message):
 							if token.startswith("%") and token.endswith("%"):
 								message = message.replace(token, f"{{{token[1:-1]}}}")
-						await self.subscription_discord_options(ctx, 'message', yid, message, channel)
+						if await self.validate_custom_message(ctx, yid, message, channel):
+							await self.subscription_discord_options(ctx, 'message', yid, message, channel)
 
-					if data.get('mention'):
-						await self.subscription_discord_options(ctx, 'mention', yid, data.get('mention'), channel)
+					if mention := data.get('mention'):
+						await self.subscription_discord_options(ctx, 'mention', yid, mention, channel)
 
 					if data.get('publish'):
 						await self.subscription_discord_options(ctx, 'publish', yid, channel)
 					count += 1
 
-				msg = _("Imported 1 subscription for {guild}.")
-				if count > 1:
-					msg = _("Imported {count} subscriptions for {guild}.")
-				await ctx.send(msg.format(count=count, guild=bold(g.name)))
+				if count > 0:
+					msg = _("Imported 1 subscription for {guild}.") if count == 1 else _("Imported {count} subscriptions for {guild}.")
+					await ctx.send(msg.format(count=count, guild=bold(g.name)))
 		await ctx.send(success(_("Migration completed!")))
 
 		if 'Tube' in ctx.bot.extensions:
@@ -750,7 +745,25 @@ class YouTube(commands.Cog):
 		msg += " " + _("In that case, please visit {url} to file a bug report.").format(url="<https://github.com/pytube/pytube>")
 		await ctx.send(error(msg))
 
-	async def subscription_discord_options(self, ctx: commands.Context, action: str, channelYouTube: str, data: Optional[str], channelDiscord: Optional[discord.TextChannel] = None) -> None:
+	async def validate_custom_message(self, ctx: commands.Context, channelYouTube: str, message: str = "", channelDiscord: Optional[discord.TextChannel] = None) -> bool:
+		fail = []
+		options = {'mention', 'author', 'title', 'published', 'updated', 'summary'}
+		for x in [i[1] for i in Formatter().parse(message) if i[1] is not None and i[1] not in options]:
+			fail.append(inline(x))
+
+		if fail:
+			msg = _("You are not allowed to use {key} in the message.").format(key=humanize_list(fail))
+			if ctx.command.qualified_name != 'youtube migrate':
+				await ctx.send(error(msg))
+			else:
+				msg += " " + _("Please fix this message later if you want to use a custom message: ")
+				prefixes = await self.bot.get_valid_prefixes(channelDiscord.guild)
+				msg += inline(f"{prefixes[0]}youtube custom {channelYouTube} {channelDiscord.mention} \"{message}\"")
+				await ctx.send(error(msg))
+			return False
+		return True
+
+	async def subscription_discord_options(self, ctx: discord.abc.Messageable, action: str, channelYouTube: str, data: Optional[str], channelDiscord: Optional[discord.TextChannel] = None) -> None:
 		"""Store custom options for Discord channels."""
 		if not (yid := await self.get_youtube_channel(ctx, channelYouTube)):
 			return

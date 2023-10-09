@@ -1,6 +1,4 @@
-
 # Installation
-
 Here are the [Red](https://github.com/Cog-Creators/Red-DiscordBot) commands to add this repository. Replace `[p]` with you bot's prefix:
 
 ```text
@@ -11,7 +9,6 @@ Here are the [Red](https://github.com/Cog-Creators/Red-DiscordBot) commands to a
 You may be prompted to respond with "I agree" after that.
 
 # Cogs
-
 You can install individual cogs with the following command. Replace `[cog]` with the name of the cog you want to install.
 
 ```text
@@ -28,21 +25,17 @@ You can install individual cogs with the following command. Replace `[cog]` with
 ---
 
 ## avatar
-
 Returns a user's avatar as attachment.
 
 ### Command
-
 | Prefix   | Option                                                 |
 | :------- | :----------------------------------------------------- |
 | `avatar` | User: can be user mention, nickname, username, user ID |
 
 ## kira
-
 Remind people to only post relevant links.
 
 ### Command
-
 | Prefix     | Option                                                    |
 | :--------- | :-------------------------------------------------------- |
 | `watch`    | Add a channel to be monitored                             |
@@ -54,7 +47,6 @@ Remind people to only post relevant links.
 *) Domains are not configurable yet. The current domains are youtu.be, youtube.com, www.youtube.com, and music.youtube.com
 
 ## youtube
-
 Posts in a channel every time a new video is added to a YouTube channel.
 
 Biggest advantages over `Tube`:
@@ -66,7 +58,6 @@ Biggest advantages over `Tube`:
 Please be aware that the "new" https://www.youtube.com/@channel.name URLs are not yet support by the upstream library `PyTube` used in this project. Please use any video URL from such channels until the upstream issue has been resolved.
 
 ### Guild Commands
-
 | Command       | Description                                          | Alias(es) |
 | :------------ | :--------------------------------------------------- | :-------- |
 | `youtube`     | Call this cog                                        | `yt` |
@@ -85,7 +76,6 @@ Please be aware that the "new" https://www.youtube.com/@channel.name URLs are no
 | `publish` | Toggles publishing new messages | `p`   | [Announcement Channels!](https://support.discord.com/hc/articles/360032008192) |
 
 ### Bot Owner Commands
-
 | Command    | Description |
 | :--------- | :---------- |
 | `demo`     | Send a demo message to the current channel |
@@ -96,15 +86,12 @@ Please be aware that the "new" https://www.youtube.com/@channel.name URLs are no
 | `migrate`  | Import all subscriptions from the `Tube` cog |
 
 ### Credits
-
 Thanks to [Caleb](https://gitlab.com/CrunchBangDev) for making [Tube](https://gitlab.com/CrunchBangDev/cbd-cogs/-/tree/master/Tube), which was the base of this cog.
 
 ## ytdedup
-
 Remove duplicate YouTube links in specified channels.
 
 ### Commands
-
 | Prefix         | Option                                                   | Alias |
 | :------------- | :------------------------------------------------------- | :---- |
 | `youtubededup` | Call this cog                                            | `ytdd` |
