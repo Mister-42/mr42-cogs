@@ -1,10 +1,8 @@
-import contextlib
 import discord
 import logging
 import re
 
 from contextlib import suppress
-from fnmatch import fnmatch
 from redbot.core import Config, checks, commands
 from redbot.core.bot import Red
 from redbot.core.i18n import Translator, cog_i18n

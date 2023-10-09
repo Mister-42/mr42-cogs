@@ -1,4 +1,3 @@
-import discord
 import json
 from pathlib import Path
 

@@ -2,7 +2,7 @@ import discord
 from io import BytesIO
 from redbot.core import commands
 from redbot.core.i18n import Translator, cog_i18n
-from redbot.core.utils.chat_formatting import bold
+from redbot.core.utils.chat_formatting import bold, error
 from typing import Literal, Optional
 
 _ = Translator("Avatar", __file__)

@@ -1,5 +1,4 @@
 import aiohttp
-import asyncio
 import discord
 import feedparser
 import logging
@@ -244,7 +243,7 @@ class YouTube(commands.Cog):
 		"""Toggles between embedded messages and linking videos
 
 		Default is to embed messages, if the bot has the `embed_links` permission"""
-		if embed := await self.config.channel(channelDiscord).embed():
+		if await self.config.channel(channelDiscord).embed():
 			await self.config.channel(channelDiscord).embed.set(False)
 			return await ctx.send(success(_("From now on I will link to videos in {channel}.").format(channel=channelDiscord.mention)))
 
