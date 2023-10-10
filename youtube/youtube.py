@@ -153,7 +153,7 @@ class YouTube(commands.Cog):
 						info += f" {tags}"
 
 					if (errorCount := await self.config.custom('subscriptions', yid).errorCount() or 0) > 6:
-						info += " \u2016 " + _("{count} errors").format(count=errorCount)
+						info += " \u205D " + _("{count} errors").format(count=errorCount)
 
 					if channel.guild.id not in subsByChannel:
 						subsByChannel[channel.guild.id] = {}
@@ -289,15 +289,13 @@ class YouTube(commands.Cog):
 						if m := dchans.get(dchan).get('mention'):
 							mention = f"<@&{m}>"
 							if m == ctx.guild.id:
-								mention = ctx.guild.default_role
+								mention = ctx.guild.default_role.name
 							elif m == "here":
 								mention = "@here"
 							part += f"\n{spacer}- {bold(_('Mention'))}: {mention}"
 
 						if dchans.get(dchan).get('publish'):
-							publish = _("Yes")
-							if not channel.is_news():
-								publish = _("Yes, but not an Announcement Channel")
+							publish = _("Yes") if channel.is_news() else _("Yes, but not an Announcement Channel")
 							part += f"\n{spacer}- {bold(_('Publish'))}: {publish}"
 
 						info.append(part)
@@ -524,7 +522,7 @@ class YouTube(commands.Cog):
 			if view.result:
 				await ctx.bot.unload_extension('Tube')
 
-	@tasks.loop(minutes=1)
+	@tasks.loop(minutes=5)
 	async def background_get_new_videos(self) -> None:
 		for yid in await self.config.custom('subscriptions').get_raw():
 			name = await self.config.custom('subscriptions', yid).name()
@@ -558,58 +556,29 @@ class YouTube(commands.Cog):
 				await self.config.custom('subscriptions', yid).errorCount.set(errorCount)
 
 				if errorCount >= 42:
-					for dchan in dchans:
-						fullName = name
-						if oldname := dchans.get(dchan).get('oldname'):
-							fullName += f" \u27ea {oldname}"
-						channel = self.bot.get_channel(int(dchan))
-
-						message = _("Hello {owner}").format(owner=channel.guild.owner.mention) + "\n\n"
-						message += _("I'm giving up…") + "\n"
-						message += _("The YouTube channel {ytName} has been gone for a while now.").format(ytName=bold(fullName))
-						message += " " + _("I'm deleting it from the configuration.") + "\n\n"
-						message += _("Have a nice day!")
-						with suppress(discord.Forbidden, discord.HTTPException):
-							await channel.guild.owner.send(message)
+					message = _("I'm giving up…") + "\n"
+					message += _("The YouTube channel {ytName} has been gone for a while now.")
+					message += " " + _("I'm deleting it from the configuration.")
+					await self.send_guild_owner_messages(yid, message)
 					await self.config.custom('subscriptions', yid).clear()
 				elif errorCount >= 14 and errorCount%7 == 0 or errorCount == 41:
-					for dchan in dchans:
-						fullName = name
-						if oldname := dchans.get(dchan).get('oldname'):
-							fullName += f" \u27ea {oldname}"
-						channel = self.bot.get_channel(int(dchan))
-						prefixes = await self.bot.get_valid_prefixes(channel.guild)
-
-						message = _("Hello {owner}").format(owner=channel.guild.owner.mention) + "\n\n"
-						message += _("I'm messaging you, as you are the owner of {guild}.").format(guild=bold(channel.guild.name)) + "\n"
-						message += _("You have previously subscribed to the YouTube channel {ytName} on your channel {channel}.").format(ytName=bold(fullName), channel=channel.mention)
-						message += " " + _("Unfortunately this channel seems to have been removed from YouTube.")
-						message += " " + _("Please feel free to verify this for yourself on {url}.").format(url=f"https://www.youtube.com/channel/{yid}") + "\n\n"
-						message += _("To unsubscribe from this channel, please type `{prefix}youtube unsubscribe {yid}` somewhere __in your server__.").format(prefix=prefixes[0], yid=yid)
-						deletionDays = _("1 day") if errorCount == 41 else _("{days} days").format(days=42 - errorCount)
-						message += " " + _("It will be automatically removed from the configuration in {days}.").format(days=bold(deletionDays))
-						message += " " + _("If you do not take any action, I will inform you later again.") + "\n\n"
-						message += _("Have a nice day!")
-						with suppress(discord.Forbidden, discord.HTTPException):
-							await channel.guild.owner.send(message)
+					message = _("I'm messaging you, as you are the owner of {guild}.") + "\n"
+					message += _("You have previously subscribed to the YouTube channel {ytName} on your channel {channel}.")
+					message += " " + _("Unfortunately this channel seems to have been removed from YouTube.")
+					message += " " + _("Please feel free to verify this for yourself at {url}.") + "\n\n"
+					message += _("To unsubscribe from this channel, please type `{prefix}youtube unsubscribe {yid}` somewhere __in your server__.")
+					deletionDays = _("1 day") if errorCount == 41 else _("{days} days").format(days=42 - errorCount)
+					message += " " + _("It will be automatically removed from the configuration in {days}.").format(days=bold(deletionDays))
+					message += " " + _("If you do not take any action, I will inform you later again.")
+					await self.send_guild_owner_messages(yid, message)
 				continue
 
 			if errorCount > 30:
-				for dchan in dchans:
-					fullName = name
-					if oldname := dchans.get(dchan).get('oldname'):
-						fullName += f" \u27ea {oldname}"
-					channel = self.bot.get_channel(int(dchan))
-					prefixes = await self.bot.get_valid_prefixes(channel.guild)
-
-					message = _("Hello {owner}").format(owner=channel.guild.owner.mention) + "\n\n"
-					message += _("I'm messaging you, as you are the owner of {guild}.").format(guild=bold(channel.guild.name)) + "\n"
-					message += _("Remember when I said the YouTube channel {ytName} was unavailable at the time? Well, it's back now!").format(ytName=bold(fullName))
-					message += " "+ _("This means you can safely ignore my previous messages about this channel.") + "\n"
-					message += _("Please feel free to verify this for yourself on {url}.").format(url=f"https://www.youtube.com/channel/{yid}") + "\n\n"
-					message += _("Have a nice day!")
-					with suppress(discord.Forbidden, discord.HTTPException):
-						await channel.guild.owner.send(message)
+				message = _("I'm messaging you, as you are the owner of {guild}.") + "\n"
+				message += _("Remember when I said the YouTube channel {ytName} was unavailable at the time? Well, it's back now!")
+				message += " "+ _("This means you can safely ignore my previous messages about this channel.") + "\n"
+				message += _("Please feel free to verify this for yourself at {url}.")
+				await self.send_guild_owner_messages(yid, message)
 
 			if errorCount:
 				await self.config.custom('subscriptions', yid).errorCount.clear()
@@ -632,17 +601,37 @@ class YouTube(commands.Cog):
 				if published.timestamp() > upd and entry['yt_videoid'] not in processed:
 					processed.insert(0, entry['yt_videoid'])
 					for dchan in dchans:
-						channel = self.bot.get_channel(int(dchan))
-						if not channel.permissions_for(channel.guild.me).send_messages:
-							log.warning(f"Not allowed to post messages to #{channel} for {channel.guild.name}")
-							continue
-						await self.send_message(entry, channel, dchans)
+						await self.send_message(entry, self.bot.get_channel(int(dchan)), dchans)
 
 			if processed != processedOrig:
 				await self.config.custom('subscriptions', yid).processed.set(processed[:6])
 				await self.config.custom('subscriptions', yid).updated.set(int(published.timestamp()))
 
+	async def send_guild_owner_messages(self, yid: str, message: str) -> None:
+		for dchan in (dchans := await self.config.custom('subscriptions', yid).discord()):
+			fullName = await self.config.custom('subscriptions', yid).name()
+			if oldname := dchans.get(dchan).get('oldname'):
+				fullName += f" \u27ea {oldname}"
+			channel = self.bot.get_channel(int(dchan))
+			prefixes = await self.bot.get_valid_prefixes(channel.guild)
+
+			msg = _("Hello {owner}").format(owner=channel.guild.owner.mention) + "\n\n"
+			msg += message.format(
+					ytName = bold(fullName),
+					guild = bold(channel.guild.name),
+					channel = channel.mention,
+					url = f"https://www.youtube.com/channel/{yid}",
+					prefix = prefixes[0],
+					yid = yid
+				)
+			msg += "\n\n" + _("Have a nice day!")
+			with suppress(discord.Forbidden, discord.HTTPException):
+				await channel.guild.owner.send(msg)
+
 	async def send_message(self, entry: feedparser, channel: discord.TextChannel, dchans: dict) -> None:
+		if not channel.permissions_for(channel.guild.me).send_messages:
+			return
+
 		dchan = str(channel.id)
 		mentions = discord.AllowedMentions.none()
 		if role := dchans.get(dchan).get('mention'):
@@ -774,9 +763,7 @@ class YouTube(commands.Cog):
 			return await ctx.send(error(_("Subscription not found.")))
 
 		if ctx.command.qualified_name != 'youtube migrate':
-			msg = _("{action} for {title} removed from {list}.")
-			if data:
-				msg = _("{action} for {title} added to {list}.")
+			msg = _("{action} for {title} added to {list}.") if data else _("{action} for {title} removed from {list}.")
 			feedTitle = await self.config.custom('subscriptions', yid).name()
 			await ctx.send(success(msg.format(action=actionName, title=bold(feedTitle), list=humanize_list(updated))))
 
