@@ -211,9 +211,19 @@ class YouTube(commands.Cog):
 		Valid options are: {mention}, {author}, {title}, {published}, {updated} and {summary}.
 
 		You can also remove customization by not specifying any message."""
+		fail = []
+		options = {'mention', 'author', 'title', 'published', 'updated', 'summary'}
+		for x in [i[1] for i in Formatter().parse(message) if i[1] is not None and i[1] not in options]:
+			fail.append(inline(x))
+
+		if fail:
+			msg = _("You are not allowed to use {key} in the message.").format(key=humanize_list(fail))
+			if ctx.command.qualified_name == 'youtube migrate':
+				msg += " " + _("Please fix this message later if you want to use a custom message: ")
+				prefixes = await self.bot.get_valid_prefixes(channelDiscord.guild)
+				msg += inline(f"{prefixes[0]}youtube custom {channelYouTube} {channelDiscord.mention} \"{message}\"")
+			return await ctx.send(error(msg))
 		msg = message.replace("\\n", "\n").strip()
-		if not await self.validate_custom_message(ctx, channelYouTube, msg, channelDiscord):
-			return
 		await self.subscription_discord_options(ctx, 'message', channelYouTube, msg, channelDiscord)
 
 	@checks.admin_or_permissions(manage_guild=True)
@@ -497,11 +507,10 @@ class YouTube(commands.Cog):
 						for token in TOKENIZER.split(message):
 							if token.startswith("%") and token.endswith("%"):
 								message = message.replace(token, f"{{{token[1:-1]}}}")
-						if await self.validate_custom_message(ctx, yid, message, channel):
-							await self.subscription_discord_options(ctx, 'message', yid, message, channel)
+						await self.custom(ctx, yid, message, channel)
 
-					if mention := data.get('mention'):
-						await self.subscription_discord_options(ctx, 'mention', yid, mention, channel)
+					if (mention := data.get('mention')) and (role := guild.get_role(mention)):
+						await self.mention(ctx, yid, role, channel)
 
 					if data.get('publish'):
 						await self.subscription_discord_options(ctx, 'publish', yid, True, channel)
@@ -718,22 +727,6 @@ class YouTube(commands.Cog):
 		msg += _("If you're certain your input is correct, it might be a bug in {pytube}.").format(pytube=inline("pytube"))
 		msg += " " + _("In that case, please visit {url} to file a bug report.").format(url="<https://github.com/pytube/pytube>")
 		await ctx.send(error(msg))
-
-	async def validate_custom_message(self, ctx: commands.Context, channelYouTube: str, message: str = "", channelDiscord: Optional[discord.TextChannel] = None) -> bool:
-		fail = []
-		options = {'mention', 'author', 'title', 'published', 'updated', 'summary'}
-		for x in [i[1] for i in Formatter().parse(message) if i[1] is not None and i[1] not in options]:
-			fail.append(inline(x))
-
-		if fail:
-			msg = _("You are not allowed to use {key} in the message.").format(key=humanize_list(fail))
-			if ctx.command.qualified_name == 'youtube migrate':
-				msg += " " + _("Please fix this message later if you want to use a custom message: ")
-				prefixes = await self.bot.get_valid_prefixes(channelDiscord.guild)
-				msg += inline(f"{prefixes[0]}youtube custom {channelYouTube} {channelDiscord.mention} \"{message}\"")
-			await ctx.send(error(msg))
-			return False
-		return True
 
 	async def subscription_discord_options(self, ctx: discord.abc.Messageable, action: str, channelYouTube: str, data: Optional[str], channelDiscord: Optional[discord.TextChannel] = None) -> None:
 		"""Store custom options for Discord channels."""
