@@ -8,11 +8,10 @@ from redbot.core import Config, checks, commands
 from redbot.core.bot import Red
 from redbot.core.i18n import Translator, cog_i18n
 from redbot.core.utils.chat_formatting import bold, error, humanize_list, success, underline, warning
-from typing import Literal, NoReturn
+from typing import NoReturn
 from urllib.parse import urlparse, parse_qs
 
 _ = Translator("YouTube", __file__)
-RequestType = Literal["discord_deleted_user", "owner", "user", "user_strict"]
 
 @cog_i18n(_)
 class YouTubeDeDup(commands.Cog):
@@ -113,9 +112,6 @@ class YouTubeDeDup(commands.Cog):
 	async def background_clean_wait_for_red(self) -> NoReturn:
 		await self.bot.wait_until_red_ready()
 
-	async def red_delete_data_for_user(self, *, requester: RequestType, user_id: int) -> None:
-		pass
-
 	async def process_message(self, message: discord.Message) -> None:
 		if embeds := message.embeds:
 			for embed in embeds:
@@ -164,6 +160,9 @@ class YouTubeDeDup(commands.Cog):
 			elif query.path.startswith(('/watch/', '/shorts/', '/live/', '/embed/', '/v/')):
 				return query.path.split('/')[2]
 		return None
+
+	async def red_delete_data_for_user(self, **kwargs) -> None:
+		pass
 
 	def cog_unload(self):
 		self.background_clean.cancel()

@@ -1,12 +1,12 @@
 import discord
+
 from io import BytesIO
 from redbot.core import commands
 from redbot.core.i18n import Translator, cog_i18n
 from redbot.core.utils.chat_formatting import bold, error
-from typing import Literal, Optional
+from typing import Optional
 
 _ = Translator("Avatar", __file__)
-RequestType = Literal["discord_deleted_user", "owner", "user", "user_strict"]
 
 @cog_i18n(_)
 class Avatar(commands.Cog):
@@ -57,5 +57,5 @@ class Avatar(commands.Cog):
 
 		await ctx.send(error(_("I do not have permission to attach files or embed links in this channel.")))
 
-	async def red_delete_data_for_user(self, *, requester: RequestType, user_id: int) -> None:
+	async def red_delete_data_for_user(self, **kwargs) -> None:
 		pass

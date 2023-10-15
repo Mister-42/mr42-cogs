@@ -8,7 +8,7 @@ import re
 from contextlib import suppress
 from datetime import datetime
 from discord.ext import tasks
-from typing import Literal, NoReturn, Optional, Union
+from typing import NoReturn, Optional, Union
 from redbot.core import Config, checks, commands
 from redbot.core.bot import Red
 from redbot.core.data_manager import bundled_data_path
@@ -19,7 +19,6 @@ from string import Formatter
 
 _ = Translator("YouTube", __file__)
 log = logging.getLogger("red.mr42-cogs.youtube")
-RequestType = Literal["discord_deleted_user", "owner", "user", "user_strict"]
 YT_COLOR = discord.Colour.from_rgb(255, 0, 0)
 YT_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
 
@@ -760,7 +759,7 @@ class YouTube(commands.Cog):
 			feedTitle = await self.config.custom('subscriptions', yid).name()
 			await ctx.send(success(msg.format(action=actionName, title=bold(feedTitle), list=humanize_list(updated))))
 
-	async def red_delete_data_for_user(self, *, requester: RequestType, user_id: int) -> None:
+	async def red_delete_data_for_user(self, **kwargs) -> None:
 		pass
 
 	def cog_unload(self):

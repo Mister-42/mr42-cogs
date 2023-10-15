@@ -8,16 +8,15 @@ from redbot.core.bot import Red
 from redbot.core.i18n import Translator, cog_i18n
 from redbot.core.utils.chat_formatting import bold, error, humanize_list, success, underline, warning
 from redbot.core.utils.views import ConfirmView
-from typing import Literal, Optional, NoReturn
+from typing import Optional, NoReturn
 from urllib.parse import urlparse
 
 _ = Translator("KirA", __file__)
 log = logging.getLogger("red.mr42-cogs.kira")
-RequestType = Literal["discord_deleted_user", "owner", "user", "user_strict"]
 
 @cog_i18n(_)
 class KirA(commands.Cog):
-	"""Keep It Relevant, A......!"""
+	"""Keep It Relevant, Asshole!"""
 
 	def __init__(self, bot: Red) -> None:
 		self.bot = bot
@@ -128,5 +127,5 @@ class KirA(commands.Cog):
 					with suppress(discord.NotFound):
 						return await message.delete()
 
-	async def red_delete_data_for_user(self, *, requester: RequestType, user_id: int) -> None:
+	async def red_delete_data_for_user(self, **kwargs) -> None:
 		pass

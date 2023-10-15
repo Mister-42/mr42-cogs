@@ -15,12 +15,13 @@ You can install individual cogs with the following command. Replace `[cog]` with
 [p]cog install mr42-cogs [cog]
 ```
 
-| Cog                 | Description |
-| :------------------ | :---------- |
-| [avatar](#avatar)   | Returns a user's avatar as attachment |
-| [kira](#kira)       | Remind people to only post relevant links |
-| [youtube](#youtube) | Posts in a channel every time a new video is added to a YouTube channel |
-| [ytdedup](#ytdedup) | Remove duplicate YouTube links in specified channels |
+| Cog                   | Description |
+| :-------------------- | :---------- |
+| [avatar](#avatar)     | Returns a user's avatar as attachment |
+| [kira](#kira)         | Remind people to only post relevant links |
+| [repolist](#repolist) | List all installed repos and their available cogs |
+| [youtube](#youtube)   | Posts in a channel every time a new video is added to a YouTube channel |
+| [ytdedup](#ytdedup)   | Remove duplicate YouTube links in specified channels |
 
 ---
 
@@ -28,7 +29,7 @@ You can install individual cogs with the following command. Replace `[cog]` with
 Returns a user's avatar as attachment.
 
 ### Command
-| Prefix   | Option                                                 |
+| Command  | Description                                            |
 | :------- | :----------------------------------------------------- |
 | `avatar` | User: can be user mention, nickname, username, user ID |
 
@@ -36,7 +37,7 @@ Returns a user's avatar as attachment.
 Remind people to only post relevant links.
 
 ### Command
-| Prefix     | Option                                                    |
+| Command    | Description                                               |
 | :--------- | :-------------------------------------------------------- |
 | `watch`    | Add a channel to be monitored                             |
 | `unwatch`  | Remove a channel from the watchlist                       |
@@ -45,6 +46,14 @@ Remind people to only post relevant links.
 | `domain`   | Configure which domains to look out for*                  |
 
 *) Domains are not configurable yet. The current domains are youtu.be, youtube.com, www.youtube.com, and music.youtube.com
+
+## repolist
+List all installed repos and their available cogs in one command.
+
+### Command
+| Command    |
+| :--------- |
+| `repolist` |
 
 ## youtube
 Posts in a channel every time a new video is added to a YouTube channel.
@@ -60,7 +69,6 @@ Please be aware that the "new" https://www.youtube.com/@channel.name URLs are no
 ### Guild Commands
 | Command       | Description                                          | Alias(es) |
 | :------------ | :--------------------------------------------------- | :-------- |
-| `youtube`     | Call this cog                                        | `yt` |
 | `subscribe`   | Subscribe a Discord channel to a YouTube channel     | `s`, `sub` |
 | `unsubscribe` | Unsubscribe a Discord channel from a YouTube channel | `u`, `unsub` |
 | `list`        | List current subscriptions                           ||
@@ -92,9 +100,8 @@ Thanks to [Caleb](https://gitlab.com/CrunchBangDev) for making [Tube](https://gi
 Remove duplicate YouTube links in specified channels.
 
 ### Commands
-| Prefix         | Option                                                   | Alias |
+| Command        | Description                                              | Alias |
 | :------------- | :------------------------------------------------------- | :---- |
-| `youtubededup` | Call this cog                                            | `ytdd` |
 | `watch`        | Add a channel to be watched                              | `w` |
 | `unwatch`      | Remove a channel from the watchlist                      | `u` |
 | `notify`       | Toggle between informing the sender and complete silence ||
