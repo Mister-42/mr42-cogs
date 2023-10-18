@@ -1,6 +1,9 @@
 # ytdedup
 Remove duplicate YouTube links in specified channels.
 
+## Usage
+This cog can be called as `[p]ytdedup` or with its alias `[p]ytdd`.
+
 ## Commands
 | Command        | Description                                              | Alias |
 | :------------- | :------------------------------------------------------- | :---- |

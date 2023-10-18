@@ -201,7 +201,7 @@ class YouTube(commands.Cog):
 	@checks.admin_or_permissions(manage_guild=True)
 	@commands.guild_only()
 	@youtube.command(aliases=['c', 'customize'])
-	async def custom(self, ctx: commands.Context, channelYouTube: str, message: str = "", channelDiscord: Optional[discord.TextChannel] = None) -> NoReturn:
+	async def custom(self, ctx: commands.Context, channelYouTube: str, message: str = "", channelDiscord: Optional[discord.TextChannel] = None) -> None:
 		"""Add a custom message for new videos from a YouTube channel.
 
 		You can use keys in your custom message, surrounded by curly braces.
@@ -228,7 +228,7 @@ class YouTube(commands.Cog):
 	@checks.admin_or_permissions(manage_guild=True)
 	@commands.guild_only()
 	@youtube.command(aliases=['m', 'rolemention'])
-	async def mention(self, ctx: commands.Context, channelYouTube: str, mention: Optional[Union[discord.Role, str]], channelDiscord: Optional[discord.TextChannel] = None) -> NoReturn:
+	async def mention(self, ctx: commands.Context, channelYouTube: str, mention: Optional[Union[discord.Role, str]], channelDiscord: Optional[discord.TextChannel] = None) -> None:
 		"""Add a role @mention. Mentions will be placed in front of the message, or replacing {mention} in a custom message.
 
 		You can also remove the mention by not specifying any role."""
@@ -350,9 +350,9 @@ class YouTube(commands.Cog):
 	@commands.guild_only()
 	@youtube.command()
 	async def maxpages(self, ctx: commands.Context, limit: Optional[int]) -> None:
-		"""Set the limit on amount of pages being sent.
+		"""Set a limit on amount of pages `list` will send.
 
-		When the limit is reached, a text file will be sent instead, E.g. in `[p]youtube list`.
+		When the limit is reached, a text file will be sent instead.
 
 		Default is a maximum of 2 pages."""
 		maxPages = abs(limit) if limit is not None else await self.config.guild(ctx.guild).maxpages()
@@ -412,13 +412,13 @@ class YouTube(commands.Cog):
 
 	@checks.is_owner()
 	@youtube.command()
-	async def infoall(self, ctx: commands.Context, channelYouTube: str) -> None:
+	async def infoall(self, ctx: commands.Context, channelYouTube: str) -> NoReturn:
 		"""Provides information about a YouTube subscription across servers."""
 		await self.info(ctx, channelYouTube)
 
 	@checks.is_owner()
 	@youtube.command()
-	async def listall(self, ctx: commands.Context) -> None:
+	async def listall(self, ctx: commands.Context) -> NoReturn:
 		"""List current subscriptions across servers."""
 		await self.list(ctx)
 
@@ -531,7 +531,7 @@ class YouTube(commands.Cog):
 				await ctx.bot.unload_extension('Tube')
 
 	@tasks.loop(minutes=5)
-	async def background_get_new_videos(self) -> None:
+	async def background_get_new_videos(self) -> NoReturn:
 		for yid in await self.config.custom('subscriptions').get_raw():
 			name = await self.config.custom('subscriptions', yid).name()
 
@@ -615,7 +615,7 @@ class YouTube(commands.Cog):
 				await self.config.custom('subscriptions', yid).processed.set(processed[:6])
 				await self.config.custom('subscriptions', yid).updated.set(int(published.timestamp()))
 
-	async def send_guild_owner_messages(self, yid: str, message: str) -> None:
+	async def send_guild_owner_messages(self, yid: str, message: str) -> NoReturn:
 		for dchan in (dchans := await self.config.custom('subscriptions', yid).discord()):
 			fullName = await self.config.custom('subscriptions', yid).name()
 			if oldname := dchans.get(dchan).get('oldname'):

@@ -6,15 +6,15 @@
 	"end_user_data_statement": "This cog does not persistently store any data or metadata about users.",
 	"install_msg": "Thank you for installing the say cog.\nType `[p]help Say` for a quick overview of the commands.",
 	"author": [
-        "retke (El Laggron)",
+		"retke (El Laggron)",
 		"Mr. 42"
 	],
 	"required_cogs": {},
 	"requirements": [],
 	"tags": [
-        "rift",
-        "upload",
-        "interact"
+		"rift",
+		"upload",
+		"interact"
 	],
 	"min_bot_version": "3.5.0",
 	"hidden": false,

@@ -4,10 +4,13 @@ Posts in a channel every time a new video is added to a YouTube channel.
 Biggest advantages over `Tube`:
 
 -   Fetch any YouTube feed only once per interval, independent of how many Discord channels are subscribed to it
--   Add YouTube channels or edit its options with almost any URL. No more fiddling around to get the Channel ID
+-   Add YouTube channels or edit their options with almost any URL. No more manual fiddling around to get the Channel ID
 -   Better reports on what YouTube channels are monitored and where they are posted
 
-Please be aware that the "new" https://www.youtube.com/@channel.name URLs are not yet support by the upstream library `PyTube` used in this project. Please use any video URL from such channels until the upstream issue has been resolved.
+Please be aware that the "new" https://www.youtube.com/@channelName URLs are not yet supported by the upstream library `PyTube` used in this project. Please use any video URL from such channels until the upstream issue has been resolved.
+
+## Usage
+This cog can be called as `[p]youtube` or with its alias `[p]yt`.
 
 ## Guild Commands
 | Command       | Description                                          | Alias(es) |
@@ -19,7 +22,7 @@ Please be aware that the "new" https://www.youtube.com/@channel.name URLs are no
 | `mention`     | Add or remove a role @mention                        | `m`, `rolemention` |
 | `embed`       | Toggles between embedded messages and linking videos ||
 | `info`        | Provides information about a YouTube subscription    ||
-| `maxpages`    | Set the limit on amount of pages being sent          ||
+| `maxpages`    | Set a limit on amount of pages `list` will send      ||
 
 ## Guild Commands for [Community Servers](https://support.discord.com/hc/articles/360047132851) only
 | Command   | Description                     | Alias | Information |

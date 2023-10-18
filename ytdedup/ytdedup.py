@@ -15,7 +15,7 @@ _ = Translator("YouTube", __file__)
 
 @cog_i18n(_)
 class YouTubeDeDup(commands.Cog):
-	"""Remove duplicate YouTube links"""
+	"""Remove duplicate YouTube links."""
 
 	def __init__(self, bot: Red) -> None:
 		self.bot = bot
@@ -26,12 +26,12 @@ class YouTubeDeDup(commands.Cog):
 		self.background_clean.start()
 
 	@commands.group(aliases=['ytdd'])
-	async def youtubededup(self, ctx: commands.Context) -> NoReturn:
+	async def ytdedup(self, ctx: commands.Context) -> NoReturn:
 		"""Remove duplicate YouTube links in specified channels."""
 
 	@checks.admin_or_permissions(manage_guild=True)
 	@commands.guild_only()
-	@youtubededup.command(aliases=['w'])
+	@ytdedup.command(aliases=['w'])
 	async def watch(self, ctx: commands.Context, channel: discord.TextChannel) -> None:
 		"""Add a channel to be watched."""
 		if channel.id in await self.config.all_channels():
@@ -53,7 +53,7 @@ class YouTubeDeDup(commands.Cog):
 
 	@checks.admin_or_permissions(manage_guild=True)
 	@commands.guild_only()
-	@youtubededup.command(aliases=['u'])
+	@ytdedup.command(aliases=['u'])
 	async def unwatch(self, ctx: commands.Context, channel: discord.TextChannel) -> None:
 		"""Remove a channel from the watchlist."""
 		if channel.id not in await self.config.all_channels():
@@ -64,7 +64,7 @@ class YouTubeDeDup(commands.Cog):
 
 	@checks.admin_or_permissions(manage_guild=True)
 	@commands.guild_only()
-	@youtubededup.command()
+	@ytdedup.command()
 	async def history(self, ctx: commands.Context, history: int) -> None:
 		"""Set the amount of days history is being kept and checked.
 
@@ -82,7 +82,7 @@ class YouTubeDeDup(commands.Cog):
 
 	@checks.admin_or_permissions(manage_guild=True)
 	@commands.guild_only()
-	@youtubededup.command()
+	@ytdedup.command()
 	async def notify(self, ctx: commands.Context) -> None:
 		"""Toggle between informing the sender and complete silence."""
 		notify = not await self.config.guild(ctx.guild).notify()
