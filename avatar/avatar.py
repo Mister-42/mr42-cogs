@@ -57,7 +57,6 @@ class Avatar(commands.Cog):
 
 	@app_commands.command(name="avatar", description="Get a user's avatar")
 	@app_commands.describe(user="The user you wish to retrieve the avatar of.")
-	@app_commands.default_permissions()
 	@app_commands.guild_only()
 	async def slash_avatar(self, interaction: discord.Interaction, user: discord.Member):
 		message = _("{author} requested the avatar of {name}.").format(author=interaction.user.mention, name=bold(user.name))
