@@ -1,5 +1,6 @@
 import discord
 
+from discord import app_commands
 from io import BytesIO
 from redbot.core import commands
 from redbot.core.i18n import Translator, cog_i18n
@@ -10,7 +11,7 @@ _ = Translator("Avatar", __file__)
 
 @cog_i18n(_)
 class Avatar(commands.Cog):
-	"""Get user's avatar."""
+	"""Get a user's avatar."""
 
 	@commands.command()
 	async def avatar(self, ctx: commands.Context, user: Optional[discord.Member] = None) -> None:
@@ -20,42 +21,58 @@ class Avatar(commands.Cog):
 
 		Defaults to requester when no argument is supplied.
 		"""
-		if not user:
-			user = ctx.author
+		user = user or ctx.author
+		message = _("{author} requested the avatar of {name}.").format(author=ctx.author.mention, name=bold(user.name))
+		if user == ctx.author:
+			message = _("Here is your avatar, {author}.").format(author=ctx.author.mention)
+		elif user == ctx.me:
+			message = _("This is _my_ avatar, {author}!").format(author=ctx.author.mention)
+		elif isinstance(ctx.channel, discord.DMChannel):
+			message = _("You requested the avatar of {name}.").format(name=bold(user.name))
 
 		if isinstance(ctx.channel, discord.channel.DMChannel) or ctx.channel.permissions_for(ctx.guild.me).attach_files:
 			async with ctx.typing():
-				pfp = BytesIO()
-
-				fileExt = "png"
-				if isinstance(ctx.channel, discord.channel.DMChannel):
-					await user.avatar.save(pfp)
-					if user.avatar and user.avatar.is_animated():
-						fileExt = "gif"
-				else:
-					await user.display_avatar.save(pfp)
-					if user.display_avatar and user.display_avatar.is_animated():
-						fileExt = "gif"
-
-				if user == ctx.author:
-					message = _("Here is your avatar, {name}.").format(name=ctx.author.mention)
-				elif user == ctx.me:
-					message = _("This is _my_ avatar, {name}!").format(name=ctx.author.mention)
-				elif isinstance(ctx.channel, discord.DMChannel):
-					message = _("You requested the avatar of {name}.").format(name=bold(user.name))
-				else:
-					message = _("{author} requested the avatar of {name}.").format(author=ctx.author.mention, name=bold(user.name))
-
-				pfp.seek(0)
-				filename = f"pfp-{user.id}.{fileExt}"
-			return await ctx.send(message, file=discord.File(pfp, filename=filename))
-
+				pfp = await self.getPfp(ctx, user)
+			return await ctx.send(message, file=pfp)
 		elif ctx.channel.permissions_for(ctx.guild.me).embed_links:
-			async with ctx.typing():
-				pfp = user.display_avatar.url
-			return await ctx.send(pfp)
+			return await ctx.send(message + "\n" + user.display_avatar.url)
 
 		await ctx.send(error(_("I do not have permission to attach files or embed links in this channel.")))
+
+	async def getPfp(self, ctx: commands.Context, user: discord.Member) -> discord.File:
+		pfp = BytesIO()
+		fileExt = "png"
+		if isinstance(ctx.channel, discord.channel.DMChannel):
+			await user.avatar.save(pfp)
+			if user.avatar and user.avatar.is_animated():
+				fileExt = "gif"
+		else:
+			await user.display_avatar.save(pfp)
+			if user.display_avatar and user.display_avatar.is_animated():
+				fileExt = "gif"
+
+		pfp.seek(0)
+		filename = f"pfp-{user.id}.{fileExt}"
+		return discord.File(pfp, filename=filename)
+
+	@app_commands.command(name="avatar", description="Get a user's avatar")
+	@app_commands.describe(user="The user you wish to retrieve the avatar of.")
+	@app_commands.default_permissions()
+	@app_commands.guild_only()
+	async def slash_avatar(self, interaction: discord.Interaction, user: discord.Member):
+		message = _("{author} requested the avatar of {name}.").format(author=interaction.user.mention, name=bold(user.name))
+		if user == interaction.user:
+			message = _("Here is your avatar, {author}.").format(author=interaction.user.mention)
+		elif user == interaction.guild.me:
+			message = _("This is _my_ avatar, {author}!").format(author=interaction.user.mention)
+
+		if interaction.channel.permissions_for(interaction.guild.me).attach_files:
+			pfp = await self.getPfp(interaction, user)
+			return await interaction.response.send_message(message, file=pfp)
+		elif interaction.channel.permissions_for(interaction.guild.me).embed_links:
+			return await interaction.response.send_message(message + "\n" + user.display_avatar.url)
+
+		await interaction.response.send_message(error(_("I do not have permission to attach files or embed links in this channel.")), ephemeral=True)
 
 	async def red_delete_data_for_user(self, **kwargs) -> None:
 		pass

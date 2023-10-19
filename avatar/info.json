@@ -1,8 +1,8 @@
 {
 	"$schema": "https://raw.githubusercontent.com/Cog-Creators/Red-DiscordBot/V3/develop/schema/red_cog.schema.json",
 	"name": "Avatar",
-	"short": "Get user's avatar.",
-	"description": "Returns a user's avatar as attachment.",
+	"short": "Get a user's avatar.",
+	"description": "Returns a user's avatar as attachment. With optional slash command.",
 	"end_user_data_statement": "This cog does not persistently store any data or metadata about users.",
 	"install_msg": "You've just installed the Avatar cog!\nType `[p]help avatar` to get a description for this cog.",
 	"author": [
