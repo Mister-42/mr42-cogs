@@ -1,7 +1,6 @@
 import discord
 
 from discord import app_commands
-from io import BytesIO
 from redbot.core import commands
 from redbot.core.i18n import Translator, cog_i18n
 from redbot.core.utils.chat_formatting import bold, error
@@ -40,20 +39,10 @@ class Avatar(commands.Cog):
 		await ctx.send(error(_("I do not have permission to attach files or embed links in this channel.")))
 
 	async def getPfp(self, ctx: commands.Context, user: discord.Member) -> discord.File:
-		pfp = BytesIO()
-		fileExt = "png"
-		if isinstance(ctx.channel, discord.channel.DMChannel):
-			await user.avatar.save(pfp)
-			if user.avatar and user.avatar.is_animated():
-				fileExt = "gif"
-		else:
-			await user.display_avatar.save(pfp)
-			if user.display_avatar and user.display_avatar.is_animated():
-				fileExt = "gif"
-
-		pfp.seek(0)
+		pfp = user.avatar if isinstance(ctx.channel, discord.channel.DMChannel) else user.display_avatar
+		fileExt = "gif" if pfp and pfp.is_animated() else "png"
 		filename = f"pfp-{user.id}.{fileExt}"
-		return discord.File(pfp, filename=filename)
+		return await pfp.to_file(filename=filename)
 
 	@app_commands.command(name="avatar", description="Get a user's avatar")
 	@app_commands.describe(user="The user you wish to retrieve the avatar of.")
