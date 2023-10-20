@@ -1,0 +1,455 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: mr42-cogs\n"
+"POT-Creation-Date: 2023-10-20 20:18+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: redgettext 3.4.2\n"
+
+#: youtube/youtube.py:32
+#, docstring
+msgid "Subscribe to channels on YouTube."
+msgstr ""
+
+#: youtube/youtube.py:46
+#, docstring
+msgid "Post when new videos are published to a YouTube channel."
+msgstr ""
+
+#: youtube/youtube.py:52
+#, docstring
+msgid ""
+"Subscribe a Discord channel to a YouTube channel.\n"
+"\n"
+"\t\tIf no Discord channel is specified, the current channel will be subscribed.\n"
+"\n"
+"\t\tChannels can be added by channel ID, channel URL, video URL, or playlist URL."
+msgstr ""
+
+#: youtube/youtube.py:65
+msgid "{title} is already being announced in {channel}."
+msgstr ""
+
+#: youtube/youtube.py:71
+msgid "Unable to connect, please try again."
+msgstr ""
+
+#: youtube/youtube.py:74
+msgid "Error {error} for channel {channel}."
+msgstr ""
+
+#: youtube/youtube.py:93
+msgid ""
+"The YouTube channel {title} will now be announced in {channel} when new "
+"videos are published."
+msgstr ""
+
+#: youtube/youtube.py:99
+#, docstring
+msgid ""
+"Unsubscribe a Discord channel from a YouTube channel.\n"
+"\n"
+"\t\tIf no Discord channel is specified, the subscription will be removed from all channels."
+msgstr ""
+
+#: youtube/youtube.py:118 youtube/youtube.py:313 youtube/youtube.py:395
+#: youtube/youtube.py:433 youtube/youtube.py:755
+msgid "Subscription not found."
+msgstr ""
+
+#: youtube/youtube.py:123
+msgid "Unsubscribed from {title} on {list}."
+msgstr ""
+
+#: youtube/youtube.py:129
+#, docstring
+msgid "List current subscriptions."
+msgstr ""
+
+#: youtube/youtube.py:155
+msgid "{count} errors"
+msgstr ""
+
+#: youtube/youtube.py:165
+msgid "No subscriptions yet - try adding some!"
+msgstr ""
+
+#: youtube/youtube.py:171
+msgid "{count} total subscriptions"
+msgstr ""
+
+#: youtube/youtube.py:173
+msgid "{count} total subscriptions over {yt} YouTube channels"
+msgstr ""
+
+#: youtube/youtube.py:181
+msgid "{count} YouTube subscriptions for {channel}"
+msgstr ""
+
+#: youtube/youtube.py:181
+msgid "1 YouTube subscription for {channel}"
+msgstr ""
+
+#: youtube/youtube.py:205
+#, docstring
+msgid ""
+"Add a custom message for new videos from a YouTube channel.\n"
+"\n"
+"\t\tYou can use keys in your custom message, surrounded by curly braces.\n"
+"\t\tE.g. `[p]youtube customize UCXuqSBlHAE6Xw-yeJA0Tunw \"Linus from **{author}** is dropping things again!\\nCheck out their new video {title}\" #video-updates`\n"
+"\n"
+"\t\tValid options are: {mention}, {author}, {title}, {published}, {updated} and {summary}.\n"
+"\n"
+"\t\tYou can also remove customization by not specifying any message."
+msgstr ""
+
+#: youtube/youtube.py:219
+msgid "You are not allowed to use {key} in the message."
+msgstr ""
+
+#: youtube/youtube.py:221
+msgid "Please fix this message later if you want to use a custom message: "
+msgstr ""
+
+#: youtube/youtube.py:232
+#, docstring
+msgid ""
+"Add a role @mention. Mentions will be placed in front of the message, or replacing {mention} in a custom message.\n"
+"\n"
+"\t\tYou can also remove the mention by not specifying any role."
+msgstr ""
+
+#: youtube/youtube.py:241
+msgid "You can't set {mention} as mention."
+msgstr ""
+
+#: youtube/youtube.py:248
+#, docstring
+msgid ""
+"Toggles between embedded messages and linking videos\n"
+"\n"
+"\t\tDefault is to embed messages, if the bot has the `embed_links` permission"
+msgstr ""
+
+#: youtube/youtube.py:253
+msgid "From now on I will link to videos in {channel}."
+msgstr ""
+
+#: youtube/youtube.py:261
+msgid ""
+"Embeds have now been enabled for {channel}, but it requires {permissions} to"
+" function."
+msgstr ""
+
+#: youtube/youtube.py:262
+msgid "Embeds have now been enabled for {channel}."
+msgstr ""
+
+#: youtube/youtube.py:268
+#, docstring
+msgid "Provides information about a YouTube subscription."
+msgstr ""
+
+#: youtube/youtube.py:293
+msgid "Subscribed as"
+msgstr ""
+
+#: youtube/youtube.py:296
+msgid "Custom"
+msgstr ""
+
+#: youtube/youtube.py:304
+msgid "Mention"
+msgstr ""
+
+#: youtube/youtube.py:307
+msgid "Yes"
+msgstr ""
+
+#: youtube/youtube.py:307
+msgid "Yes, but not an Announcement Channel"
+msgstr ""
+
+#: youtube/youtube.py:308
+msgid "Publish"
+msgstr ""
+
+#: youtube/youtube.py:334 youtube/youtube.py:343
+msgid "Subscription information for {name}"
+msgstr ""
+
+#: youtube/youtube.py:338
+msgid "Latest video"
+msgstr ""
+
+#: youtube/youtube.py:353
+#, docstring
+msgid ""
+"Set a limit on amount of pages `list` will send.\n"
+"\n"
+"\t\tWhen the limit is reached, a text file will be sent instead.\n"
+"\n"
+"\t\tDefault is a maximum of 2 pages."
+msgstr ""
+
+#: youtube/youtube.py:359
+msgid "1 page"
+msgstr ""
+
+#: youtube/youtube.py:359
+msgid "{pages} pages"
+msgstr ""
+
+#: youtube/youtube.py:362
+msgid ""
+"I am currently sending a maximum of {limit} before sending a file instead."
+msgstr ""
+
+#: youtube/youtube.py:365
+msgid "I will now send a file after reaching {limit}."
+msgstr ""
+
+#: youtube/youtube.py:372
+#, docstring
+msgid ""
+" Toggles publishing new messages to a Discord channel.\n"
+"\n"
+"\t\tThis feature is only available on Community Servers."
+msgstr ""
+
+#: youtube/youtube.py:392
+msgid "The channel {list} is not an Announcement Channel."
+msgstr ""
+
+#: youtube/youtube.py:392
+msgid "The channels {list} are not Announcement Channels."
+msgstr ""
+
+#: youtube/youtube.py:401
+#, docstring
+msgid "Send a demo message to the current channel."
+msgstr ""
+
+#: youtube/youtube.py:416
+#, docstring
+msgid "Provides information about a YouTube subscription across servers."
+msgstr ""
+
+#: youtube/youtube.py:422
+#, docstring
+msgid "List current subscriptions across servers."
+msgstr ""
+
+#: youtube/youtube.py:428
+#, docstring
+msgid ""
+"Delete a YouTube channel from the configuration. This will delete all data "
+"associated with this channel."
+msgstr ""
+
+#: youtube/youtube.py:442
+msgid "You are about to remove {channel} from the configuration."
+msgstr ""
+
+#: youtube/youtube.py:443
+msgid "It is subscribed to by {channels}."
+msgstr ""
+
+#: youtube/youtube.py:444 youtube/youtube.py:488
+msgid "Do you want to continue?"
+msgstr ""
+
+#: youtube/youtube.py:450
+msgid "{channel} has been removed from the configuration."
+msgstr ""
+
+#: youtube/youtube.py:451
+msgid "{channel} has not been deleted."
+msgstr ""
+
+#: youtube/youtube.py:456
+#, docstring
+msgid ""
+"Set the interval in seconds at which to check for updates.\n"
+"\n"
+"\t\tVery low values will probably get you rate limited!\n"
+"\n"
+"\t\tDefault is 300 seconds (5 minutes)."
+msgstr ""
+
+#: youtube/youtube.py:463
+msgid "I am currently checking every {time} for new videos."
+msgstr ""
+
+#: youtube/youtube.py:465
+msgid "You cannot set the interval to less than 60 seconds"
+msgstr ""
+
+#: youtube/youtube.py:469
+msgid "I will now check every {time} for new videos."
+msgstr ""
+
+#: youtube/youtube.py:474
+#, docstring
+msgid "Import all subscriptions from the `Tube` cog."
+msgstr ""
+
+#: youtube/youtube.py:483
+msgid "No data found to import. Migration has been cancelled."
+msgstr ""
+
+#: youtube/youtube.py:486
+msgid "You are about to import **{channels} YouTube subscriptions**."
+msgstr ""
+
+#: youtube/youtube.py:487
+msgid ""
+"Depending on the internet speed of the server, this might take a while."
+msgstr ""
+
+#: youtube/youtube.py:492
+msgid "Migration has been cancelled."
+msgstr ""
+
+#: youtube/youtube.py:494
+msgid "Migration started…"
+msgstr ""
+
+#: youtube/youtube.py:519
+msgid "Imported 1 subscription for {guild}."
+msgstr ""
+
+#: youtube/youtube.py:519
+msgid "Imported {count} subscriptions for {guild}."
+msgstr ""
+
+#: youtube/youtube.py:521
+msgid "Migration completed!"
+msgstr ""
+
+#: youtube/youtube.py:525
+msgid ""
+"Running the {tube} cog alongside this cog *will* get spammy. Do you want to "
+"unload {tube}?"
+msgstr ""
+
+#: youtube/youtube.py:567
+msgid "I'm giving up…"
+msgstr ""
+
+#: youtube/youtube.py:568
+msgid "The YouTube channel {ytName} has been gone for a while now."
+msgstr ""
+
+#: youtube/youtube.py:569
+msgid "I'm deleting it from the configuration."
+msgstr ""
+
+#: youtube/youtube.py:573 youtube/youtube.py:585
+msgid "I'm messaging you, as you are the owner of {guild}."
+msgstr ""
+
+#: youtube/youtube.py:574
+msgid ""
+"You have previously subscribed to the YouTube channel {ytName} on your "
+"channel {channel}."
+msgstr ""
+
+#: youtube/youtube.py:575
+msgid "Unfortunately this channel seems to have been removed from YouTube."
+msgstr ""
+
+#: youtube/youtube.py:576 youtube/youtube.py:588
+msgid "Please feel free to verify this for yourself at {url}."
+msgstr ""
+
+#: youtube/youtube.py:577
+msgid ""
+"To unsubscribe from this channel, please type `{prefix}youtube unsubscribe "
+"{yid}` somewhere __in your server__."
+msgstr ""
+
+#: youtube/youtube.py:578
+msgid "1 day"
+msgstr ""
+
+#: youtube/youtube.py:578
+msgid "{days} days"
+msgstr ""
+
+#: youtube/youtube.py:579
+msgid "It will be automatically removed from the configuration in {days}."
+msgstr ""
+
+#: youtube/youtube.py:580
+msgid "If you do not take any action, I will inform you later again."
+msgstr ""
+
+#: youtube/youtube.py:586
+msgid ""
+"Remember when I said the YouTube channel {ytName} was unavailable at the "
+"time? Well, it's back now!"
+msgstr ""
+
+#: youtube/youtube.py:587
+msgid ""
+"This means you can safely ignore my previous messages about this channel."
+msgstr ""
+
+#: youtube/youtube.py:626
+msgid "Hello {owner}"
+msgstr ""
+
+#: youtube/youtube.py:635
+msgid "Have a nice day!"
+msgstr ""
+
+#: youtube/youtube.py:658
+msgid "mention not set"
+msgstr ""
+
+#: youtube/youtube.py:680
+msgid "New video from {author}: {title}"
+msgstr ""
+
+#: youtube/youtube.py:725
+msgid "Unable to retrieve channel id from {channel}."
+msgstr ""
+
+#: youtube/youtube.py:726
+msgid ""
+"If you're certain your input is correct, it might be a bug in {pytube}."
+msgstr ""
+
+#: youtube/youtube.py:727
+msgid "In that case, please visit {url} to file a bug report."
+msgstr ""
+
+#: youtube/youtube.py:736
+msgid "Custom message"
+msgstr ""
+
+#: youtube/youtube.py:738
+msgid "Role mention"
+msgstr ""
+
+#: youtube/youtube.py:740
+msgid "Publishing"
+msgstr ""
+
+#: youtube/youtube.py:742
+msgid "Unknown action: {action}"
+msgstr ""
+
+#: youtube/youtube.py:758
+msgid "{action} for {title} added to {list}."
+msgstr ""
+
+#: youtube/youtube.py:758
+msgid "{action} for {title} removed from {list}."
+msgstr ""

@@ -1,0 +1,110 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: mr42-cogs\n"
+"POT-Creation-Date: 2023-10-20 20:51+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: redgettext 3.4.2\n"
+
+#: ytdedup/ytdedup.py:18
+#, docstring
+msgid "Remove duplicate YouTube links."
+msgstr ""
+
+#: ytdedup/ytdedup.py:30
+#, docstring
+msgid "Remove duplicate YouTube links in specified channels."
+msgstr ""
+
+#: ytdedup/ytdedup.py:36
+#, docstring
+msgid "Add a channel to be watched."
+msgstr ""
+
+#: ytdedup/ytdedup.py:38
+msgid "The channel {channel} is already being monitored."
+msgstr ""
+
+#: ytdedup/ytdedup.py:42
+msgid "View Channel"
+msgstr ""
+
+#: ytdedup/ytdedup.py:44
+msgid "Manage Messages"
+msgstr ""
+
+#: ytdedup/ytdedup.py:46
+msgid "Read Message History"
+msgstr ""
+
+#: ytdedup/ytdedup.py:49
+msgid "I don't have permission to {perm} in {channel}."
+msgstr ""
+
+#: ytdedup/ytdedup.py:52
+msgid ""
+"The channel {channel} will now be monitored for duplicate YouTube links."
+msgstr ""
+
+#: ytdedup/ytdedup.py:58
+#, docstring
+msgid "Remove a channel from the watchlist."
+msgstr ""
+
+#: ytdedup/ytdedup.py:60
+msgid "The channel {channel} is not being watched."
+msgstr ""
+
+#: ytdedup/ytdedup.py:63
+msgid ""
+"The channel {channel} will no longer be monitored for duplicate YouTube "
+"links."
+msgstr ""
+
+#: ytdedup/ytdedup.py:69
+#, docstring
+msgid ""
+"Set the amount of days history is being kept and checked.\n"
+"\n"
+"\t\tDefault is 7 days."
+msgstr ""
+
+#: ytdedup/ytdedup.py:80
+msgid "1 day"
+msgstr ""
+
+#: ytdedup/ytdedup.py:80
+msgid "{history} days"
+msgstr ""
+
+#: ytdedup/ytdedup.py:81
+msgid "I will keep message history for {days}."
+msgstr ""
+
+#: ytdedup/ytdedup.py:87
+#, docstring
+msgid "Toggle between informing the sender and complete silence."
+msgstr ""
+
+#: ytdedup/ytdedup.py:91
+msgid "enabled"
+msgstr ""
+
+#: ytdedup/ytdedup.py:91
+msgid "disabled"
+msgstr ""
+
+#: ytdedup/ytdedup.py:92
+msgid "User notification has been {action}."
+msgstr ""
+
+#: ytdedup/ytdedup.py:137
+msgid ""
+"Hello {name}. I have deleted your link, as it was already posted here "
+"recently."
+msgstr ""

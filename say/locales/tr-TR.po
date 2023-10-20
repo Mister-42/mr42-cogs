@@ -1,0 +1,140 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: mr42-cogs\n"
+"POT-Creation-Date: 2023-10-20 20:16+0200\n"
+"Last-Translator: \n"
+"Language-Team: Turkish\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: redgettext 3.4.2\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language: tr_TR\n"
+
+#: say/say.py:22
+#, docstring
+msgid "Speak as if you were the bot."
+msgstr "Bot yerine siz konuşun"
+
+#: say/say.py:45 say/say.py:47
+msgid "I am not allowed to send messages in {channel}"
+msgstr "Buraya mesaj yollamaya iznim yok {channel}"
+
+#: say/say.py:53 say/say.py:55
+msgid "I am not allowed to upload files in {channel}"
+msgstr "Buraya dosya yükleme iznim yok {channel}"
+
+#: say/say.py:62 say/say.py:260
+msgid "An error occured when sending the message."
+msgstr ""
+
+#: say/say.py:68
+#, docstring
+msgid ""
+"Make the bot say what you want in the desired channel.\n"
+"\n"
+"\t\tIf no channel is specified, the message will be send in the current channel.\n"
+"\t\tYou can attach some files to upload them to Discord.\n"
+"\n"
+"\t\tExample usage :\n"
+"\t\t- `!say #general hello there`\n"
+"\t\t- `!say owo I have a file` (a file is attached to the command message)"
+msgstr ""
+"Bota istediğiniz kanalda istediğinizi söyletin.\n"
+"\t\tEğer mesaj için bir kanal ayarlanmazsa şu anki odaya atacaktı.\n"
+"\t\tİstediğiniz dosyaları Discord'a yüklemek içinde kullanabilirsiniz.\n"
+"\n"
+"\t\tÖrneğin :\n"
+"\t\t- `!say #general Merhaba`\n"
+"\t\t- `!say owo benim bir dosyam var ` (komut satırına bir dosya ekleyin)"
+
+#: say/say.py:82
+#, docstring
+msgid ""
+"Same as say command, except it deletes the said message after a set number "
+"of seconds."
+msgstr ""
+
+#: say/say.py:89
+#, docstring
+msgid ""
+"Same as say command, except it deletes your message.\n"
+"\n"
+"\t\tIf the message wasn't removed, then I don't have enough permissions."
+msgstr ""
+"Aynı komut ve işlev fakat siz yazdıktan sonra mesajınız silinir.\n"
+"\n"
+"\t\tEğer mesaj silinmezse bu yetkimin yetmediği anlamına gelir."
+
+#: say/say.py:99 say/say.py:101
+msgid "Not enough permissions to delete messages."
+msgstr "Mesajları silmeye yeterli yetkim yok."
+
+#: say/say.py:108
+#, docstring
+msgid "Same as say command, except role and mass mentions are enabled."
+msgstr ""
+
+#: say/say.py:129
+msgid ""
+"I can't mention the following roles: {roles}\n"
+"Turn on mentions or grant me the correct permissions.\n"
+msgstr ""
+
+#: say/say.py:136
+msgid "I don't have the permission to mention everyone."
+msgstr ""
+
+#: say/say.py:140
+msgid ""
+"You're not allowed to mention the following roles: {roles}\n"
+"Turn on mentions for that role or have the correct permissions.\n"
+msgstr ""
+
+#: say/say.py:146
+msgid "You don't have the permission yourself to do mass mentions."
+msgstr ""
+
+#: say/say.py:155
+#, docstring
+msgid "Start receiving and sending messages as the bot through DM"
+msgstr "DM aracılığıyla bot olarak mesaj almaya ve göndermeye başlayın"
+
+#: say/say.py:158
+msgid ""
+"You need to give a channel to enable this in DM. You can give the channel ID"
+" too."
+msgstr "DM olarak kullanmak için bir kanal ayarlamanız gerekir. İster kanal ister ID olarak ekleyebilirsiniz."
+
+#: say/say.py:164
+msgid "A session is already running."
+msgstr "Bir işlem zaten devam ediyor."
+
+#: say/say.py:168
+msgid ""
+"I will start sending you messages from {0}.\n"
+"Just send me any message and I will send it in that channel.\n"
+"React with ❌ on this message to end the session.\n"
+"If no message was send or received in the last 5 minutes, the request will time out and stop."
+msgstr ""
+
+#: say/say.py:186
+msgid "Request timed out. Session closed"
+msgstr "İşlem zaman aşımına uğradı. Bu oturum kapandı"
+
+#: say/say.py:237
+msgid "You cannot send an empty message."
+msgstr ""
+
+#: say/say.py:241
+msgid "I don't have the permission to send messages there."
+msgstr ""
+
+#: say/say.py:244
+msgid "I don't have the permission to upload files there."
+msgstr ""
+
+#: say/say.py:279
+msgid "Session closed"
+msgstr "Oturum kapatıldı"

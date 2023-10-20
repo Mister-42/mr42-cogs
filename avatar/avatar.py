@@ -18,8 +18,7 @@ class Avatar(commands.Cog):
 
 		User argument can be user mention, nickname, username, user ID.
 
-		Defaults to requester when no argument is supplied.
-		"""
+		Defaults to requester when no argument is supplied."""
 		user = user or ctx.author
 		message = _("{author} requested the avatar of {name}.").format(author=ctx.author.mention, name=bold(user.display_name))
 		if user == ctx.author:
