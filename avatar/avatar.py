@@ -21,13 +21,13 @@ class Avatar(commands.Cog):
 		Defaults to requester when no argument is supplied.
 		"""
 		user = user or ctx.author
-		message = _("{author} requested the avatar of {name}.").format(author=ctx.author.mention, name=bold(user.name))
+		message = _("{author} requested the avatar of {name}.").format(author=ctx.author.mention, name=bold(user.display_name))
 		if user == ctx.author:
 			message = _("Here is your avatar, {author}.").format(author=ctx.author.mention)
 		elif user == ctx.me:
 			message = _("This is _my_ avatar, {author}!").format(author=ctx.author.mention)
 		elif isinstance(ctx.channel, discord.DMChannel):
-			message = _("You requested the avatar of {name}.").format(name=bold(user.name))
+			message = _("You requested the avatar of {name}.").format(name=bold(user.global_name))
 
 		if isinstance(ctx.channel, discord.channel.DMChannel) or ctx.channel.permissions_for(ctx.guild.me).attach_files:
 			async with ctx.typing():
@@ -48,7 +48,7 @@ class Avatar(commands.Cog):
 	@app_commands.describe(user="The user you wish to retrieve the avatar of.")
 	@app_commands.guild_only()
 	async def slash_avatar(self, interaction: discord.Interaction, user: discord.Member):
-		message = _("{author} requested the avatar of {name}.").format(author=interaction.user.mention, name=bold(user.name))
+		message = _("{author} requested the avatar of {name}.").format(author=interaction.user.mention, name=bold(user.display_name))
 		if user == interaction.user:
 			message = _("Here is your avatar, {author}.").format(author=interaction.user.mention)
 		elif user == interaction.guild.me:
