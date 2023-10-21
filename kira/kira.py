@@ -110,7 +110,7 @@ class KirA(commands.Cog):
 
 	@commands.Cog.listener()
 	async def on_message(self, message: discord.Message) -> None:
-		if not message.author.bot and message.author != message.guild.owner and message.channel.id in await self.config.all_channels():
+		if not message.author.bot and message.channel.id in await self.config.all_channels() and message.author != message.guild.owner:
 			for link in re.findall(r'(https?://\S+/)', message.content):
 				if urlparse(link).hostname in await self.config.channel(message.channel).domains():
 					timeout = await self.config.channel(message.channel).timeout()
