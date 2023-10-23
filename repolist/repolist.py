@@ -1,11 +1,9 @@
+from inspect import getfile
 from redbot.core import checks, commands
 from redbot.core.bot import Red
-from redbot.core.i18n import Translator, cog_i18n
+from redbot.core.i18n import Translator
 from redbot.core.utils.chat_formatting import box, pagify
 
-_ = Translator("Downloader", __file__)
-
-@cog_i18n(_)
 class RepoList(commands.Cog):
 	"""List all installed repos and their available cogs in one command."""
 	def __init__(self, bot: Red) -> None:
@@ -16,6 +14,7 @@ class RepoList(commands.Cog):
 	async def repolist(self, ctx: commands.Context) -> None:
 		"""List all installed repos and their available cogs."""
 		cog = self.bot.get_cog("Downloader")
+		_ = Translator("Downloader", getfile(cog.__class__))
 		repos = cog._repo_manager.repos
 		sorted_repos = sorted(repos, key=lambda r: str.lower(r.name))
 		if len(repos) == 0:
