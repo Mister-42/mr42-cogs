@@ -421,15 +421,6 @@ msgstr ""
 msgid "Unable to retrieve channel id from {channel}."
 msgstr ""
 
-#: youtube/youtube.py:726
-msgid ""
-"If you're certain your input is correct, it might be a bug in {pytube}."
-msgstr ""
-
-#: youtube/youtube.py:727
-msgid "In that case, please visit {url} to file a bug report."
-msgstr ""
-
 #: youtube/youtube.py:736
 msgid "Custom message"
 msgstr ""

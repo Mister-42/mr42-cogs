@@ -7,8 +7,6 @@ Biggest advantages over `Tube`:
 -   Add YouTube channels or edit their options with almost any URL. No more manual fiddling around to get the Channel ID
 -   Better reports on what YouTube channels are monitored and where they are posted
 
-Please be aware that the "new" https://www.youtube.com/@channelName URLs are not yet supported by the upstream library `PyTube` used in this project. Please use any video URL from such channels until the upstream issue has been resolved.
-
 ## Usage
 This cog can be called as `[p]youtube` or with its alias `[p]yt`.
 

@@ -2,8 +2,8 @@ import aiohttp
 import discord
 import feedparser
 import logging
-import pytube
 import re
+import yt_dlp
 
 from contextlib import suppress
 from datetime import datetime
@@ -16,6 +16,7 @@ from redbot.core.i18n import Translator, cog_i18n
 from redbot.core.utils.chat_formatting import bold, error, escape, humanize_list, humanize_timedelta, inline, pagify, question, success, text_to_file, warning
 from redbot.core.utils.views import ConfirmView
 from string import Formatter
+from urllib.parse import urlparse
 
 _ = Translator("YouTube", __file__)
 log = logging.getLogger("red.mr42-cogs.youtube")
@@ -715,16 +716,12 @@ class YouTube(commands.Cog):
 				return match.string
 			url = f"https://www.youtube.com/channel/{match.string}"
 
-		with suppress(Exception):
-			return pytube.Channel(url).channel_id	# URL is a channel?
-		with suppress(Exception):
-			return pytube.YouTube(url).channel_id	# URL is a video?
-		with suppress(Exception):
-			return pytube.Playlist(url).owner_id	# URL is a playlist?
+		if urlparse(url).hostname in {'youtu.be', 'youtube.com', 'www.youtube.com', 'music.youtube.com'}:
+			options = {'extract_flat': False, 'playlist_items': '0'}
+			with yt_dlp.YoutubeDL(options) as ydl, suppress(Exception):
+				return ydl.extract_info(url, download=False).get('channel_id')
 
-		msg = _("Unable to retrieve channel id from {channel}.").format(channel=bold(channelYouTube)) + "\n"
-		msg += _("If you're certain your input is correct, it might be a bug in {pytube}.").format(pytube=inline("pytube"))
-		msg += " " + _("In that case, please visit {url} to file a bug report.").format(url="<https://github.com/pytube/pytube>")
+		msg = _("Unable to retrieve channel id from {channel}.").format(channel=bold(channelYouTube))
 		await ctx.send(error(msg))
 
 	async def subscription_discord_options(self, ctx: discord.abc.Messageable, action: str, channelYouTube: str, data: Optional[str], channelDiscord: Optional[discord.TextChannel] = None) -> None:

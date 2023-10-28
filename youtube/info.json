@@ -11,7 +11,7 @@
 	"required_cogs": {},
 	"requirements": [
 		"feedparser",
-		"pytube"
+		"yt-dlp"
 	],
 	"tags": [
 		"YouTube"
