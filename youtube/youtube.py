@@ -721,8 +721,7 @@ class YouTube(commands.Cog):
 			with yt_dlp.YoutubeDL(options) as ydl, suppress(Exception):
 				return ydl.extract_info(url, download=False).get('channel_id')
 
-		msg = _("Unable to retrieve channel id from {channel}.").format(channel=bold(channelYouTube))
-		await ctx.send(error(msg))
+		await ctx.send(error(_("Unable to retrieve channel id from {channel}.").format(channel=bold(channelYouTube))))
 
 	async def subscription_discord_options(self, ctx: discord.abc.Messageable, action: str, channelYouTube: str, data: Optional[str], channelDiscord: Optional[discord.TextChannel] = None) -> None:
 		"""Store custom options for Discord channels."""

@@ -17,7 +17,7 @@
 		"interact"
 	],
 	"min_bot_version": "3.5.0",
-	"hidden": false,
+	"hidden": true,
 	"disabled": false,
 	"type": "COG"
 }
