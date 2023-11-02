@@ -17,9 +17,8 @@ You can install individual cogs with the following command. Replace `cogname` wi
 
 | Cog                   | Description |
 | :-------------------- | :---------- |
-| [avatar](avatar/)     | Returns a user's avatar as attachment |
+| [avatar](avatar/)     | Returns a user's avatar as attachment. With optional slash command |
 | [kira](kira/)         | Remind people to only post relevant links |
 | [repolist](repolist/) | List all installed repos and their available cogs |
-| [say](say/)           | Speak as if you were the bot |
 | [youtube](youtube/)   | Posts in a channel every time a new video is added to a YouTube channel |
 | [ytdedup](ytdedup/)   | Remove duplicate YouTube links in specified channels |

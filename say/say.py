@@ -5,9 +5,8 @@ import logging
 import re
 
 from contextlib import suppress
-from discord import app_commands
 from typing import Optional
-from redbot.core import checks, commands
+from redbot.core import app_commands, checks, commands
 from redbot.core.bot import Red
 from redbot.core.i18n import Translator, cog_i18n
 from redbot.core.utils.chat_formatting import bold, error, humanize_list, warning

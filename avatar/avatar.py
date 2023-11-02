@@ -1,6 +1,6 @@
 import discord
 
-from redbot.core import commands, app_commands
+from redbot.core import app_commands, commands
 from redbot.core.i18n import Translator, cog_i18n
 from redbot.core.utils.chat_formatting import bold, error
 from typing import Optional
