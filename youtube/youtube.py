@@ -536,7 +536,7 @@ class YouTube(commands.Cog):
 		for yid in await self.config.custom('subscriptions').get_raw():
 			name = await self.config.custom('subscriptions', yid).name()
 
-			for dchan in await self.config.custom('subscriptions', yid).discord():
+			for dchan in await self.config.custom('subscriptions', yid).discord() or []:
 				if not self.bot.get_channel(int(dchan)):
 					await self.config.custom('subscriptions', yid, 'discord', dchan).clear()
 					continue
