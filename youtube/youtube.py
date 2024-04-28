@@ -582,7 +582,7 @@ class YouTube(commands.Cog):
 					await self.send_guild_owner_messages(yid, message)
 				continue
 
-			if errorCount > 30:
+			if errorCount >= 14:
 				message = _("I'm messaging you, as you are the owner of {guild}.") + "\n"
 				message += _("Remember when I said the YouTube channel {ytName} was unavailable at the time? Well, it's back now!")
 				message += " "+ _("This means you can safely ignore my previous messages about this channel.") + "\n"
