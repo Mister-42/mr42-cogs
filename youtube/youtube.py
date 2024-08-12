@@ -558,8 +558,17 @@ class YouTube(commands.Cog):
 				continue
 
 			if isinstance(feedData, aiohttp.ClientResponse):
+				if feedData.status == 403 and errorCount >= 14:
+					bannediptime = await self.config.bannediptime() or 0
+					if now - bannediptime < 7200:
+						continue
+					await self.config.bannediptime.set(now)
+					await self.bot.send_to_owners("YouTube returned `403: Forbidden error`. Possible IP block, please review.")
+					continue
+
 				if errorCount >= 14 and now - lastTry < 86400:
 					continue
+
 				errorCount += 1
 				await self.config.custom('subscriptions', yid).lastTry.set(now)
 				await self.config.custom('subscriptions', yid).errorCount.set(errorCount)
@@ -590,6 +599,7 @@ class YouTube(commands.Cog):
 				await self.send_guild_owner_messages(yid, message)
 
 			if errorCount:
+				await self.config.bannediptime.clear()
 				await self.config.custom('subscriptions', yid).errorCount.clear()
 				await self.config.custom('subscriptions', yid).lastTry.clear()
 
