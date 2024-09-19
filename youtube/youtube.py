@@ -563,7 +563,7 @@ class YouTube(commands.Cog):
 					if now - bannediptime < 7200:
 						continue
 					await self.config.bannediptime.set(now)
-					await self.bot.send_to_owners("YouTube returned `403: Forbidden error`. Possible IP block, please review.")
+					await self.bot.send_to_owners("YouTube returned `403: Forbidden` error. Possible IP block, please review.")
 					continue
 
 				if errorCount >= 14 and now - lastTry < 86400:
@@ -686,12 +686,14 @@ class YouTube(commands.Cog):
 			embed.timestamp = datetime.strptime(entry['updated'], YT_FORMAT)
 			icon = discord.File(bundled_data_path(self) / "youtube_social_icon_red.png", filename="youtube.png")
 			embed.set_footer(text="YouTube", icon_url="attachment://youtube.png")
-			message = await channel.send(role, file=icon, embed=embed, allowed_mentions=mentions)
+			with suppress(discord.DiscordServerError):
+				message = await channel.send(role, file=icon, embed=embed, allowed_mentions=mentions)
 		else:
 			description = custom or _("New video from {author}: {title}").format(author=bold(entry['author']), title=bold(entry['title']))
 			if role and dchans.get(dchan).get('message', "").find("{mention}") == -1:
 				description = f"{role} {description}"
-			message = await channel.send(content=f"{description}\nhttps://youtu.be/{entry['yt_videoid']}", allowed_mentions=mentions)
+			with suppress(discord.DiscordServerError):
+				message = await channel.send(content=f"{description}\nhttps://youtu.be/{entry['yt_videoid']}", allowed_mentions=mentions)
 
 		if dchans.get(dchan).get('publish') and channel.is_news():
 			with suppress(discord.HTTPException):
