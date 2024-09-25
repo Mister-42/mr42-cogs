@@ -558,7 +558,7 @@ class YouTube(commands.Cog):
 				continue
 
 			if isinstance(feedData, aiohttp.ClientResponse):
-				if feedData.status == 403 and errorCount >= 14:
+				if feedData.status == 403 and errorCount >= 13:
 					bannediptime = await self.config.bannediptime() or 0
 					if now - bannediptime < 7200:
 						continue
