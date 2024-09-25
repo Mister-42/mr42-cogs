@@ -552,18 +552,25 @@ class YouTube(commands.Cog):
 					or errorCount >= 9 and now - lastTry < 3600:
 					continue
 
+			bannediptime = await self.config.bannediptime() or 0
+			if now - bannediptime < 900:
+				continue
+
 			try:
 				feedData = await self.get_feed(yid)
 			except ConnectionError:
 				continue
 
+			bannedipcount = await self.config.bannedipcount() or 0
 			if isinstance(feedData, aiohttp.ClientResponse):
-				if feedData.status == 403 and errorCount >= 13:
-					bannediptime = await self.config.bannediptime() or 0
-					if now - bannediptime < 7200:
-						continue
+				if feedData.status == 403:
+					bannedipcount += 1
+					await self.config.bannedipcount.set(bannedipcount)
 					await self.config.bannediptime.set(now)
-					await self.bot.send_to_owners("YouTube returned `403: Forbidden` error. Possible IP block, please review.")
+
+					if bannedipcount == 1:
+						await self.bot.send_to_owners("YouTube returned `403: Forbidden` error. Possible IP block, please review.")
+
 					continue
 
 				if errorCount >= 14 and now - lastTry < 86400:
@@ -591,6 +598,11 @@ class YouTube(commands.Cog):
 					await self.send_guild_owner_messages(yid, message)
 				continue
 
+			if bannedipcount > 0:
+				await self.config.bannediptime.clear()
+				await self.config.bannedipcount.clear()
+				await self.bot.send_to_owners("YouTube functionality restored: IP block has been lifted.")
+
 			if errorCount >= 14:
 				message = _("I'm messaging you, as you are the owner of {guild}.") + "\n"
 				message += _("Remember when I said the YouTube channel {ytName} was unavailable at the time? Well, it's back now!")
@@ -599,7 +611,6 @@ class YouTube(commands.Cog):
 				await self.send_guild_owner_messages(yid, message)
 
 			if errorCount:
-				await self.config.bannediptime.clear()
 				await self.config.custom('subscriptions', yid).errorCount.clear()
 				await self.config.custom('subscriptions', yid).lastTry.clear()
 
