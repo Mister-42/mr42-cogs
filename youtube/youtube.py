@@ -706,7 +706,7 @@ class YouTube(commands.Cog):
 			with suppress(discord.DiscordServerError):
 				message = await channel.send(content=f"{description}\nhttps://youtu.be/{entry['yt_videoid']}", allowed_mentions=mentions)
 
-		if dchans.get(dchan).get('publish') and channel.is_news():
+		if message in locals() and dchans.get(dchan).get('publish') and channel.is_news():
 			with suppress(discord.HTTPException):
 				await message.publish()
 
