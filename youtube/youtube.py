@@ -686,6 +686,7 @@ class YouTube(commands.Cog):
 			}
 			custom = custom.format(**options)
 
+		message = None
 		if channel.permissions_for(channel.guild.me).embed_links and channel.permissions_for(channel.guild.me).attach_files and await self.config.channel(channel).embed():
 			embed = discord.Embed()
 			embed.colour = YT_COLOR
