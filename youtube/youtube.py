@@ -570,7 +570,7 @@ class YouTube(commands.Cog):
 
 					if bannedipcount == 1:
 						self.background_get_new_videos.change_interval(seconds=600)
-						await self.bot.send_to_owners("YouTube returned `403: Forbidden` error, possibly due to an IP block. I will try to resolve this by limiting requests to just 1 every 10 minutes. Once the block is lifted, the normal request interval will be restored.")
+						await self.bot.send_to_owners("YouTube returned `403: Forbidden` error, possibly due to an IP block. I will try to get the block lifted by limiting requests to 1 every 10 minutes, until the issue is resolved.")
 
 					continue
 
