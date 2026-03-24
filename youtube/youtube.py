@@ -552,10 +552,6 @@ class YouTube(commands.Cog):
 					or errorCount >= 9 and now - lastTry < 3600:
 					continue
 
-			bannediptime = await self.config.bannediptime() or 0
-			if now - bannediptime < 900:
-				continue
-
 			try:
 				feedData = await self.get_feed(yid)
 			except ConnectionError:
@@ -566,11 +562,10 @@ class YouTube(commands.Cog):
 				if feedData.status == 403:
 					bannedipcount += 1
 					await self.config.bannedipcount.set(bannedipcount)
-					await self.config.bannediptime.set(now)
 
 					if bannedipcount == 1:
-						self.background_get_new_videos.change_interval(seconds=600)
-						await self.bot.send_to_owners("YouTube returned `403: Forbidden` error, possibly due to an IP block. I will try to get the block lifted by limiting requests to 1 every 10 minutes, until the issue is resolved.")
+						self.background_get_new_videos.change_interval(minutes=15)
+						await self.bot.send_to_owners("YouTube returned `403: Forbidden` error, likely due to an IP block. I will try to get the block lifted by limiting requests to 1 every 15 minutes, until the issue is resolved.")
 
 					continue
 
@@ -602,7 +597,6 @@ class YouTube(commands.Cog):
 			if bannedipcount > 0:
 				interval = await self.config.interval()
 				self.background_get_new_videos.change_interval(seconds=interval)
-				await self.config.bannediptime.clear()
 				await self.config.bannedipcount.clear()
 				await self.bot.send_to_owners("YouTube functionality restored: IP block has been lifted.")
 
