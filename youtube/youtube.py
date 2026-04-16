@@ -572,14 +572,15 @@ class YouTube(commands.Cog):
 				if errorCount >= 14 and now - lastTry < 86400:
 					continue
 
-				options = {'extract_flat': True, 'playlist_items': '0', 'quiet': True}
-				with yt_dlp.YoutubeDL(options) as ydl, suppress(Exception):
-					if ydl.extract_info(f"https://www.youtube.com/channel/{yid}", download=False).get('channel_id'):
-						continue
-
 				errorCount += 1
 				await self.config.custom('subscriptions', yid).lastTry.set(now)
 				await self.config.custom('subscriptions', yid).errorCount.set(errorCount)
+
+				options = {'extract_flat': True, 'playlist_items': '0', 'quiet': True}
+				with yt_dlp.YoutubeDL(options) as ydl, suppress(Exception):
+					if ydl.extract_info(f"https://www.youtube.com/channel/{yid}", download=False).get('channel_id'):
+						await self.config.custom('subscriptions', yid).errorCount.set(1)
+						continue
 
 				if errorCount >= 42:
 					message = _("I'm giving up…") + "\n"
