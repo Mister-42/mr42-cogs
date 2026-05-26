@@ -675,7 +675,7 @@ class YouTube(commands.Cog):
 			return
 
 		dchan = str(channel.id)
-		if "/shorts/" in entry['link'] and dchans.get(dchan).get('skip_shorts'):
+		if "/shorts/" in (entry['link'] or "") and dchans.get(dchan).get('skip_shorts'):
 			return
 
 		mentions = discord.AllowedMentions.none()
