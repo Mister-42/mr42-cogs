@@ -148,7 +148,7 @@ class YouTube(commands.Cog):
 					if oldname := dchans.get(dchan).get('oldname'):
 						info += f" \u27ea {oldname}"
 
-					d = {'message': '\u1d9c', 'mention': '\u1d50', 'publish': '\u1d56'}
+					d = {'message': '\u1d9c', 'mention': '\u1d50', 'publish': '\u1d56', 'skip_shorts': '\u02e2'}
 					if tags := ''.join(v for k, v in d.items() if k in dchans.get(dchan)):
 						info += f" {tags}"
 
@@ -241,6 +241,15 @@ class YouTube(commands.Cog):
 		elif mention:
 			return await ctx.send(error(_("You can't set {mention} as mention.").format(mention=mention)))
 		await self.subscription_discord_options(ctx, 'mention', channelYouTube, m, channelDiscord)
+
+	@checks.admin_or_permissions(manage_guild=True)
+	@commands.guild_only()
+	@youtube.command()
+	async def shorts(self, ctx: commands.Context, channelYouTube: str, skip: bool = True, channelDiscord: Optional[discord.TextChannel] = None) -> None:
+		"""Toggles posting shorts
+
+		Default is to include shorts"""
+		await self.subscription_discord_options(ctx, 'skip_shorts', channelYouTube, skip, channelDiscord)
 
 	@checks.admin_or_permissions(manage_guild=True)
 	@commands.guild_only()
@@ -666,6 +675,9 @@ class YouTube(commands.Cog):
 			return
 
 		dchan = str(channel.id)
+		if "/shorts/" in entry['link']['href'] and dchans.get(dchan).get('skip_shorts'):
+			return
+
 		mentions = discord.AllowedMentions.none()
 		if role := dchans.get(dchan).get('mention'):
 			if role == channel.guild.id:
@@ -759,6 +771,8 @@ class YouTube(commands.Cog):
 			actionName = _("Custom message")
 		elif action == 'mention':
 			actionName = _("Role mention")
+		elif action == 'skip_shorts':
+			actionName = _("Skip shorts")
 		elif action == 'publish':
 			actionName = _("Publishing")
 		else:
