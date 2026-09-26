@@ -702,25 +702,26 @@ class YouTube(commands.Cog):
 			custom = custom.format(**options)
 
 		message = None
-		if channel.permissions_for(channel.guild.me).embed_links and channel.permissions_for(channel.guild.me).attach_files and await self.config.channel(channel).embed():
-			embed = discord.Embed()
-			embed.colour = YT_COLOR
-			embed.title = entry['title']
-			embed.url = entry['link']
-			embed.description = custom
-			embed.set_author(name=entry['author'], url=entry['author_detail']['href'])
-			embed.set_image(url=f"https://i.ytimg.com/vi/{entry['yt_videoid']}/hqdefault.jpg")
-			embed.timestamp = datetime.strptime(entry['updated'], YT_FORMAT)
-			icon = discord.File(bundled_data_path(self) / "youtube_social_icon_red.png", filename="youtube.png")
-			embed.set_footer(text="YouTube", icon_url="attachment://youtube.png")
-			with suppress(discord.DiscordServerError):
+		try:
+			if channel.permissions_for(channel.guild.me).embed_links and channel.permissions_for(channel.guild.me).attach_files and await self.config.channel(channel).embed():
+				embed = discord.Embed()
+				embed.colour = YT_COLOR
+				embed.title = entry['title']
+				embed.url = entry['link']
+				embed.description = custom
+				embed.set_author(name=entry['author'], url=entry['author_detail']['href'])
+				embed.set_image(url=f"https://i.ytimg.com/vi/{entry['yt_videoid']}/hqdefault.jpg")
+				embed.timestamp = datetime.strptime(entry['updated'], YT_FORMAT)
+				icon = discord.File(bundled_data_path(self) / "youtube_social_icon_red.png", filename="youtube.png")
+				embed.set_footer(text="YouTube", icon_url="attachment://youtube.png")
 				message = await channel.send(role, file=icon, embed=embed, allowed_mentions=mentions)
-		else:
-			description = custom or _("New video from {author}: {title}").format(author=bold(entry['author']), title=bold(entry['title']))
-			if role and dchans.get(dchan).get('message', "").find("{mention}") == -1:
-				description = f"{role} {description}"
-			with suppress(discord.DiscordServerError):
+			else:
+				description = custom or _("New video from {author}: {title}").format(author=bold(entry['author']), title=bold(entry['title']))
+				if role and dchans.get(dchan).get('message', "").find("{mention}") == -1:
+					description = f"{role} {description}"
 				message = await channel.send(content=f"{description}\nhttps://youtu.be/{entry['yt_videoid']}", allowed_mentions=mentions)
+		except discord.HTTPException as exc:
+			log.warning("Failed to send YouTube video %s to Discord channel %s: %s", entry['yt_videoid'], channel.id, exc)
 
 		if isinstance(message, discord.Message) and dchans.get(dchan).get('publish') and channel.is_news():
 			with suppress(discord.HTTPException):
