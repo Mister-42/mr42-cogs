@@ -1,4 +1,5 @@
 import aiohttp
+import asyncio
 import discord
 import feedparser
 import logging
@@ -586,10 +587,12 @@ class YouTube(commands.Cog):
 				await self.config.custom('subscriptions', yid).errorCount.set(errorCount)
 
 				options = {'extract_flat': True, 'playlist_items': '0', 'quiet': True}
-				with yt_dlp.YoutubeDL(options) as ydl, suppress(Exception):
-					if ydl.extract_info(f"https://www.youtube.com/channel/{yid}", download=False).get('channel_id'):
-						await self.config.custom('subscriptions', yid).errorCount.set(1)
-						continue
+				channel_id = await asyncio.get_running_loop().run_in_executor(
+					None, self._extract_channel_id, f"https://www.youtube.com/channel/{yid}", options
+				)
+				if channel_id:
+					await self.config.custom('subscriptions', yid).errorCount.set(1)
+					continue
 
 				if errorCount >= 42:
 					message = _("I'm giving up…") + "\n"
@@ -758,10 +761,17 @@ class YouTube(commands.Cog):
 
 		if urlparse(url).hostname in {'youtu.be', 'youtube.com', 'www.youtube.com', 'music.youtube.com'}:
 			options = {'extract_flat': False, 'playlist_items': '0'}
-			with yt_dlp.YoutubeDL(options) as ydl, suppress(Exception):
-				return ydl.extract_info(url, download=False).get('channel_id')
+			return await asyncio.get_running_loop().run_in_executor(
+				None, self._extract_channel_id, url, options
+			)
 
 		await ctx.send(error(_("Unable to retrieve channel id from {channel}.").format(channel=bold(f"<{url}>"))))
+
+	@staticmethod
+	def _extract_channel_id(url: str, options: dict) -> Optional[str]:
+		with yt_dlp.YoutubeDL(options) as ydl, suppress(Exception):
+			info = ydl.extract_info(url, download=False)
+			return info.get('channel_id') if info else None
 
 	async def subscription_discord_options(self, ctx: discord.abc.Messageable, action: str, channelYouTube: str, data: Optional[str], channelDiscord: Optional[discord.TextChannel] = None) -> None:
 		"""Store custom options for Discord channels."""
